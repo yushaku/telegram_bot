@@ -1,0 +1,21 @@
+{
+  "name": "tele_bot",
+  "version": "1.0.50",
+  "module": "src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "bun run --watch src/index.ts"
+  },
+  "dependencies": {
+    "@elysiajs/cors": "^0.7.1",
+    "@elysiajs/eden": "^0.7.4",
+    "@types/node-telegram-bot-api": "^0.61.8",
+    "axios": "^1.5.1",
+    "elysia": "latest",
+    "node-telegram-bot-api": "^0.63.0",
+    "request": "^2.88.2"
+  },
+  "devDependencies": {
+    "bun-types": "latest"
+  }
+}
