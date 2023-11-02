@@ -3,8 +3,7 @@
   "version": "1.0.50",
   "module": "src/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "bun run --watch src/index.ts"
+    "dev": "bun run --watch src/server.ts"
   },
   "dependencies": {
     "@elysiajs/cors": "^0.7.1",
@@ -12,6 +11,7 @@
     "@types/node-telegram-bot-api": "^0.61.8",
     "axios": "^1.5.1",
     "elysia": "latest",
+    "ethers": "^6.8.0",
     "node-telegram-bot-api": "^0.63.0",
     "request": "^2.88.2"
   },
