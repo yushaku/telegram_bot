@@ -1,0 +1,38 @@
+version: "3.3"
+
+services:
+  redis:
+    image: redis:7.0-alpine
+    container_name: redis
+    ports:
+      - 6379:6379
+    networks:
+      - common
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: redis-commander
+    restart: unless-stopped
+    environment:
+      - REDIS_HOSTS=redis
+    ports:
+      - 8081:8081
+    networks:
+      - common
+
+  mongodb:
+    container_name: mongo_db
+    image: mongo:6.0.2-focal
+    ports:
+      - ${MONGO_PORT:-5433}:5433
+    volumes:
+      - .docker/mongodb:/data/db
+    environment:
+      - MONGO_NAME=$MONGO_NAME
+    networks:
+      - common
+
+networks:
+  common:
+    driver: bridge
+    name: common
