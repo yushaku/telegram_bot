@@ -1,14 +1,10 @@
+import { HDNodeWallet } from "ethers";
+
 export const START_MESSAGE = `
 What would you like to do today?
 Monitor
 Active Trades: 1
 Disabled Trades: 0
-
-God Mode
-Active God Modes: 0
-
-Presale
-Active Presales: 0
 `;
 
 export const HELP_MESSAGE = `
@@ -64,14 +60,26 @@ Premium Benefits ⭐
 🛒 Buy for $200 per 30 days! Use the pay buttons below to start or extend your subscription.
 `;
 
-export const WALLET_MESSAGE = `
-🔗 BSC
-Main | 0 BNB
-0x4aBfCf64bB323CC8B65e2E69F2221B14943C6EE1 | On 🟢
-🔗 ETH
-Main | 0 ETH
-0x4aBfCf64bB323CC8B65e2E69F2221B14943C6EE1 | On 🟢
-🔗 ARB
-Main | -
-- | On 🟢;
+export const walletMsg = ({
+  gas,
+  block,
+  ethCost,
+  accounts,
+}: {
+  gas: number;
+  block: number;
+  ethCost: number;
+  accounts?: HDNodeWallet[];
+}) => `
+Ethereum is supported.
+Gas: ${gas} GW   ═   Block: ${block}   ═   ETH: $${ethCost}
+💎  TogonBot | [Website](https://github.com/yagop/node-telegram-bot-api/blob/master/doc/usage.md) 💎
+Snipe & trade at elite speeds for free. 
+
+===
+${accounts?.map((acc, index) => {
+  return `
+🏛️  [Wallet-${index}](https://etherscan.io/address/${acc.address})
+🔸  ${acc.address}
 `;
+})} `;

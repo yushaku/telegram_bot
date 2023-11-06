@@ -1,7 +1,15 @@
-import { FEATURES_IMPORT_WALLET } from "./constants";
+import TelegramBot from "node-telegram-bot-api";
+
+import {
+  IMPORT_WALLET,
+  FEATURES_WALLET,
+  CREATE_WALLET,
+  REMOVE_WALLET,
+} from "./constants";
 
 export const PREMIUM_BUTTONS = {
   reply_markup: {
+    force_reply: true,
     inline_keyboard: [
       [
         { text: "Pay in BNB", callback_data: "Pay in BNB" },
@@ -18,7 +26,7 @@ export const START_BUTTONS = {
       [
         {
           text: "🗃️ Wallets",
-          callback_data: "yes",
+          callback_data: FEATURES_WALLET,
         },
         {
           text: "Call Channels",
@@ -55,18 +63,15 @@ export const START_BUTTONS = {
   },
 };
 
-export const WALLET_BUTTONS = {
+export const WALLET_BUTTONS: TelegramBot.SendMessageOptions = {
+  parse_mode: "Markdown",
+  disable_web_page_preview: true,
   reply_markup: {
     inline_keyboard: [
       [
-        {
-          text: "Import Wallet",
-          callback_data: FEATURES_IMPORT_WALLET,
-        },
-        {
-          text: "Reder QA code",
-          callback_data: "qa_code",
-        },
+        { text: "Import Wallet", callback_data: IMPORT_WALLET },
+        { text: "Create Wallet", callback_data: CREATE_WALLET },
+        { text: "Remove Wallet", callback_data: REMOVE_WALLET },
       ],
     ],
   },
