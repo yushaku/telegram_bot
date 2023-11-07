@@ -15,4 +15,4 @@ export const FEATURES_PREMIUM = "premium";
 export const FEATURES_WALLET = "wallet feature";
 export const IMPORT_WALLET = "import_wallet";
 export const CREATE_WALLET = "create_wallet";
-export const REMOVE_WALLET = "remove_wallet";
+export const LIST_WALLET = "list_wallet";

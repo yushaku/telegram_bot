@@ -4,7 +4,7 @@ import {
   IMPORT_WALLET,
   FEATURES_WALLET,
   CREATE_WALLET,
-  REMOVE_WALLET,
+  LIST_WALLET,
 } from "./constants";
 
 export const PREMIUM_BUTTONS = {
@@ -71,8 +71,8 @@ export const WALLET_BUTTONS: TelegramBot.SendMessageOptions = {
       [
         { text: "Import Wallet", callback_data: IMPORT_WALLET },
         { text: "Create Wallet", callback_data: CREATE_WALLET },
-        { text: "Remove Wallet", callback_data: REMOVE_WALLET },
       ],
+      [{ text: "List Wallet", callback_data: LIST_WALLET }],
     ],
   },
 };

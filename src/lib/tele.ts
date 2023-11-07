@@ -9,7 +9,7 @@ import {
   FEATURES_PREMIUM,
   FEATURES_WALLET,
   CREATE_WALLET,
-  REMOVE_WALLET,
+  LIST_WALLET,
 } from "../utils/constants";
 import {
   PREMIUM_BUTTONS,
@@ -52,9 +52,18 @@ export class TeleBot {
       this.bot.sendMessage(msg.chat.id, HELP_MESSAGE);
     });
 
-    this.bot.onText(/\/premium/, (msg) => {
-      this.bot.sendMessage(msg.chat.id, PREMIUM_MESSAGE, PREMIUM_BUTTONS);
-    });
+    // this.bot.onText(/\/premium/, (msg) => {
+    //   this.bot.sendMessage(msg.chat.id, PREMIUM_MESSAGE, PREMIUM_BUTTONS);
+    // });
+
+    // this.bot.onText(/\/price/, async (msg) => {
+    //   const sent = await this.bot.sendMessage(msg.chat.id, "Processing...");
+    //   const text = await this.teleService.getBlock();
+    //   this.bot.editMessageText(text, {
+    //     chat_id: sent.chat.id,
+    //     message_id: sent.message_id,
+    //   });
+    // });
 
     this.bot.onText(/\/start/, (msg) => {
       if (!msg.from) return;
@@ -66,8 +75,23 @@ export class TeleBot {
       const id = msg.from?.id;
       if (!id) return;
 
+      const sent = await this.bot.sendMessage(msg.chat.id, "Processing...");
       const text = await this.teleService.commandWallet(id);
-      this.bot.sendMessage(msg.chat.id, text, WALLET_BUTTONS);
+      this.bot.editMessageText(text, {
+        chat_id: sent.chat.id,
+        message_id: sent.message_id,
+        parse_mode: "Markdown",
+        disable_web_page_preview: true,
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: "Import Wallet", callback_data: IMPORT_WALLET },
+              { text: "Create Wallet", callback_data: CREATE_WALLET },
+            ],
+            [{ text: "List Wallet", callback_data: LIST_WALLET }],
+          ],
+        },
+      });
     });
   }
 
@@ -75,32 +99,70 @@ export class TeleBot {
     this.bot.on("callback_query", async (query) => {
       const action = query.data;
       const msg = query.message;
-      if (!msg) return;
+      const userId = msg?.from?.id;
+      const chatId = msg?.chat.id;
+
+      if (!msg || !action || !userId || !chatId) return;
+
+      if (action.match(/(remove|detail) (\S+)/g)) {
+        const [type, address] = action.split(" ");
+
+        switch (type) {
+          case "detail": {
+            break;
+          }
+
+          case "remove": {
+            const sent = await this.bot.sendMessage(
+              chatId,
+              "⚠️  Are you sure?  type 'yes' to confirm ⚠️",
+              { reply_markup: { force_reply: true } },
+            );
+
+            return this.bot.onReplyToMessage(
+              chatId,
+              sent.message_id,
+              async (msg) => {
+                if (!msg.from?.id || msg?.text !== "yes") return;
+                const text = await this.teleService.deleteWallet(
+                  msg.from.id,
+                  address,
+                );
+                return this.bot.sendMessage(chatId, text);
+              },
+            );
+          }
+
+          default:
+            this.bot.sendMessage(chatId, "Unknown command");
+            break;
+        }
+
+        return;
+      }
 
       switch (action) {
         case FEATURES_WALLET: {
-          const id = msg.from?.id;
-          if (!id) return;
-
-          const text = await this.teleService.commandWallet(id);
-          return this.bot.sendMessage(msg.chat.id, text, WALLET_BUTTONS);
+          const text = await this.teleService.commandWallet(userId);
+          return this.bot.sendMessage(chatId, text, WALLET_BUTTONS);
         }
 
         case FEATURES_PREMIUM: {
-          this.bot.sendMessage(msg.chat.id, PREMIUM_MESSAGE, PREMIUM_BUTTONS);
+          this.bot.sendMessage(chatId, PREMIUM_MESSAGE, PREMIUM_BUTTONS);
           break;
         }
 
         case IMPORT_WALLET: {
           const replyMsg = await this.bot.sendMessage(
-            msg.chat.id,
+            chatId,
             "Imput your secret key or mnemonic here:",
-            { reply_markup: { force_reply: true } },
+            {
+              reply_markup: { force_reply: true },
+            },
           );
 
-          const chatId = replyMsg.chat.id;
-          this.bot.onReplyToMessage(
-            chatId,
+          return this.bot.onReplyToMessage(
+            replyMsg.chat.id,
             replyMsg.message_id,
             async (msg) => {
               if (!msg.from?.id || !msg.text) return;
@@ -108,25 +170,27 @@ export class TeleBot {
                 msg.from.id,
                 msg.text,
               );
-              this.bot.sendMessage(chatId, text);
+              this.bot.sendMessage(replyMsg.chat.id, text);
             },
           );
-        }
-
-        case REMOVE_WALLET: {
         }
 
         case CREATE_WALLET: {
           const acc = await this.teleService.createWallet(query.from.id);
           return this.bot.sendMessage(
-            msg.chat.id,
-            `Created successfully: \n 💠 ***${acc.address}*** \n\n And please store your mnemonic phrase in safe place: \n 💠 ***${acc.mnemonic?.phrase}***`,
+            chatId,
+            `💠 Created successfully: \n ***${acc.address}*** \n\n 💠And please store your mnemonic phrase in safe place: \n ***${acc.mnemonic?.phrase}***`,
             { parse_mode: "Markdown", disable_web_page_preview: true },
           );
         }
 
+        case LIST_WALLET: {
+          const btns = await this.teleService.listWallet(query.from.id);
+          return this.bot.sendMessage(chatId, "Account List", btns);
+        }
+
         default:
-          this.bot.sendMessage(msg.chat.id, "unknown command");
+          this.bot.sendMessage(chatId, "unknown command");
           break;
       }
     });

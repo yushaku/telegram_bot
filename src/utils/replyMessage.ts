@@ -1,4 +1,5 @@
 import { HDNodeWallet } from "ethers";
+import { Account } from "../type";
 
 export const START_MESSAGE = `
 What would you like to do today?
@@ -61,25 +62,25 @@ Premium Benefits ⭐
 `;
 
 export const walletMsg = ({
-  gas,
   block,
-  ethCost,
+  ethPrice,
   accounts,
 }: {
-  gas: number;
   block: number;
-  ethCost: number;
-  accounts?: HDNodeWallet[];
+  ethPrice: number;
+  accounts?: { address: string; balance: number }[];
 }) => `
 Ethereum is supported.
-Gas: ${gas} GW   ═   Block: ${block}   ═   ETH: $${ethCost}
+Block: ${block}   ═   ETH: $${ethPrice}
 💎  TogonBot | [Website](https://github.com/yagop/node-telegram-bot-api/blob/master/doc/usage.md) 💎
 Snipe & trade at elite speeds for free. 
 
 ===
-${accounts?.map((acc, index) => {
-  return `
+${accounts
+  ?.map((acc, index) => {
+    return `
 🏛️  [Wallet-${index}](https://etherscan.io/address/${acc.address})
-🔸  ${acc.address}
-`;
-})} `;
+💵  ${acc.balance}
+🔸  ${acc.address}`;
+  })
+  .join("\n")} `;

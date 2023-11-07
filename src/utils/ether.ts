@@ -1,11 +1,5 @@
 import { Wallet } from "ethers";
 
-export interface Account {
-  privateKey: string;
-  address: string;
-  balance: string;
-}
-
 export function parseKey(seedPhrase: string = "") {
   return seedPhrase.includes(" ")
     ? Wallet.fromPhrase(seedPhrase)
@@ -24,4 +18,8 @@ export function shortenAddress(str: string, numChars: number = 4) {
 
 export function toFixedIfNecessary(value: string, decimalPlaces: number = 2) {
   return +parseFloat(value).toFixed(decimalPlaces);
+}
+
+export function bigintToNumber(num: number | bigint, decimal = 18) {
+  return Number(num) / 10 ** decimal;
 }
