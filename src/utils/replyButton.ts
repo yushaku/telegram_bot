@@ -5,6 +5,12 @@ import {
   FEATURES_WALLET,
   CREATE_WALLET,
   LIST_WALLET,
+  BUY_LIMIT,
+  BUY_TOKEN,
+  SELL_LIMIT,
+  SELL_TOKEN,
+  SET_SPLIPAGE,
+  SET_MAX_GAS,
 } from "./constants";
 
 export const PREMIUM_BUTTONS = {
@@ -35,18 +41,12 @@ export const START_BUTTONS = {
       ],
       [
         {
-          text: "PreSales",
-          callback_data: "yes",
+          text: "Set Slipage",
+          callback_data: SET_SPLIPAGE,
         },
         {
-          text: "Copytrade",
-          callback_data: "no",
-        },
-      ],
-      [
-        {
-          text: "God mode",
-          callback_data: "yes",
+          text: "Set Max Gas",
+          callback_data: SET_MAX_GAS,
         },
       ],
       [
@@ -73,6 +73,26 @@ export const WALLET_BUTTONS: TelegramBot.SendMessageOptions = {
         { text: "Create Wallet", callback_data: CREATE_WALLET },
       ],
       [{ text: "List Wallet", callback_data: LIST_WALLET }],
+    ],
+  },
+};
+
+export const DETAIL_WALLET_BUTTONS = {
+  reply_markup: {
+    inline_keyboard: [
+      [
+        { text: "Buy Token", callback_data: BUY_TOKEN },
+        { text: "Sell Token", callback_data: SELL_TOKEN },
+      ],
+      [
+        { text: "Buy Limit", callback_data: BUY_LIMIT },
+        { text: "Sell Limit", callback_data: SELL_LIMIT },
+      ],
+      [
+        { text: "Token Balance", callback_data: "Token Balance" },
+        { text: "Wallet Analysis", callback_data: "Wallet Analysis" },
+        { text: "Flex Pnl", callback_data: "Flex Pnl" },
+      ],
     ],
   },
 };

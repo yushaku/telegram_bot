@@ -73,7 +73,7 @@ export const walletMsg = ({
 Ethereum is supported.
 Block: ${block}   ═   ETH: $${ethPrice}
 💎  TogonBot | [Website](https://github.com/yagop/node-telegram-bot-api/blob/master/doc/usage.md) 💎
-Snipe & trade at elite speeds for free. 
+Snipe & trade at elite speeds for free.
 
 ===
 ${accounts
@@ -84,3 +84,17 @@ ${accounts
 🔸  ${acc.address}`;
   })
   .join("\n")} `;
+
+export const walletDetail = ({
+  block,
+  ethPrice,
+  balance,
+}: {
+  block: number;
+  ethPrice: number;
+  balance: number;
+}) => `
+⏹️  Block: ${block} 
+💠  ETH: $${ethPrice}
+💎  Wallet Balance: ${balance}
+`;

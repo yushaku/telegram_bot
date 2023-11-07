@@ -1,18 +1,15 @@
 import TelegramBot from "node-telegram-bot-api";
-import {
-  HELP_MESSAGE,
-  PREMIUM_MESSAGE,
-  START_MESSAGE,
-} from "../utils/replyMessage";
+import { START_MESSAGE } from "../utils/replyMessage";
 import {
   IMPORT_WALLET,
-  FEATURES_PREMIUM,
   FEATURES_WALLET,
   CREATE_WALLET,
   LIST_WALLET,
+  SET_SPLIPAGE,
+  SET_MAX_GAS,
 } from "../utils/constants";
 import {
-  PREMIUM_BUTTONS,
+  DETAIL_WALLET_BUTTONS,
   START_BUTTONS,
   WALLET_BUTTONS,
 } from "../utils/replyButton";
@@ -31,16 +28,12 @@ export class TeleBot {
     console.log(`🤖 Telegram bot is running`);
     this.bot.setMyCommands([
       {
-        command: "/start",
-        description: "Start using Tigon bot",
+        command: "/sniper",
+        description: "Summons the Tigon bot main panel",
       },
       {
         command: "/wallet",
         description: "Show your wallet information",
-      },
-      {
-        command: "/help",
-        description: "List all command of bot",
       },
     ]);
     this.listen();
@@ -48,24 +41,7 @@ export class TeleBot {
   }
 
   listen() {
-    this.bot.onText(/\/help/, (msg) => {
-      this.bot.sendMessage(msg.chat.id, HELP_MESSAGE);
-    });
-
-    // this.bot.onText(/\/premium/, (msg) => {
-    //   this.bot.sendMessage(msg.chat.id, PREMIUM_MESSAGE, PREMIUM_BUTTONS);
-    // });
-
-    // this.bot.onText(/\/price/, async (msg) => {
-    //   const sent = await this.bot.sendMessage(msg.chat.id, "Processing...");
-    //   const text = await this.teleService.getBlock();
-    //   this.bot.editMessageText(text, {
-    //     chat_id: sent.chat.id,
-    //     message_id: sent.message_id,
-    //   });
-    // });
-
-    this.bot.onText(/\/start/, (msg) => {
+    this.bot.onText(/\/sniper/, (msg) => {
       if (!msg.from) return;
       this.teleService.commandStart(msg.from);
       this.bot.sendMessage(msg.chat.id, START_MESSAGE, START_BUTTONS);
@@ -109,6 +85,13 @@ export class TeleBot {
 
         switch (type) {
           case "detail": {
+            const sent = await this.bot.sendMessage(chatId, "processing...");
+            const text = await this.teleService.getDetails(address);
+            this.bot.editMessageText(text, {
+              chat_id: sent.chat.id,
+              message_id: sent.message_id,
+              ...DETAIL_WALLET_BUTTONS,
+            });
             break;
           }
 
@@ -147,9 +130,33 @@ export class TeleBot {
           return this.bot.sendMessage(chatId, text, WALLET_BUTTONS);
         }
 
-        case FEATURES_PREMIUM: {
-          this.bot.sendMessage(chatId, PREMIUM_MESSAGE, PREMIUM_BUTTONS);
-          break;
+        case SET_MAX_GAS:
+        case SET_SPLIPAGE: {
+          const text =
+            action === SET_MAX_GAS
+              ? "✏️  Reply to this message with your desired maximum gas price (in gwei). 1 gwei = 10 ^ 9 wei. Minimum is 5 gwei!"
+              : "✏️  Reply to this message with your desired slippage percentage. Minimum is 0.1%. Max is 1000%!";
+
+          const replyMsg = await this.bot.sendMessage(chatId, text, {
+            reply_markup: { force_reply: true },
+          });
+
+          return this.bot.onReplyToMessage(
+            replyMsg.chat.id,
+            replyMsg.message_id,
+            async (msg) => {
+              const num = msg.text?.match(/\d+/g)?.at(0);
+              const type = action === SET_MAX_GAS ? "maxGas" : "slippage";
+              if (!msg.from?.id || !num) return;
+
+              const text = await this.teleService.setConfig(
+                type,
+                msg.from.id,
+                Number(num),
+              );
+              this.bot.sendMessage(replyMsg.chat.id, text);
+            },
+          );
         }
 
         case IMPORT_WALLET: {

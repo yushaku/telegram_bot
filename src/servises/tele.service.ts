@@ -1,9 +1,9 @@
 import { EtherscanProvider, InfuraProvider } from "ethers";
-import TelegramBot, { InlineKeyboardButton, User } from "node-telegram-bot-api";
+import TelegramBot, { User } from "node-telegram-bot-api";
 import { Account, UserEntity } from "../type";
 import { ETHERSCAN_ID, INFURA_ID } from "../utils/constants";
 import { bigintToNumber, createAccount, parseKey } from "../utils/ether";
-import { walletMsg } from "../utils/replyMessage";
+import { walletDetail, walletMsg } from "../utils/replyMessage";
 import { RedisService } from "./redis.service";
 
 export class TeleService {
@@ -31,6 +31,18 @@ export class TeleService {
 
     this.cache.set(id, defalt);
     return defalt;
+  }
+
+  async setConfig(type: "slippage" | "maxGas", userId: number, num: number) {
+    const user = (await this.cache.get(userId)) as UserEntity;
+    await this.cache.set(userId, {
+      ...user,
+      [type]: num,
+    });
+
+    return `Set ${type} to ${num} ${
+      type === "slippage" ? "%" : "gwei"
+    } successfully`;
   }
 
   async commandWallet(userId: number) {
@@ -108,15 +120,23 @@ export class TeleService {
     return "Delete successfully";
   }
 
-  async getBalance(accList: Account[]) {
-    const query = accList.map((account) =>
-      this.provider.getBalance(account.address),
-    );
-
-    const balances = await Promise.all([
-      this.etherscan.getEtherPrice(),
-      ...query,
+  async getDetails(wallet: string) {
+    const [balance, block] = await Promise.all([
+      this.provider.getBalance(wallet),
+      this.getBlock(),
     ]);
+
+    return walletDetail({
+      block: block.block?.number ?? 0,
+      ethPrice: block.ethPrice,
+      balance: bigintToNumber(balance),
+    });
+  }
+
+  async getBalance(accList: Account[]) {
+    const balances = await Promise.all(
+      accList.map((account) => this.provider.getBalance(account.address)),
+    );
 
     return accList.map((account, index) => ({
       address: account.address,
