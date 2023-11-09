@@ -1,6 +1,3 @@
-import { HDNodeWallet } from "ethers";
-import { Account } from "../type";
-
 export const START_MESSAGE = `
 What would you like to do today?
 Monitor

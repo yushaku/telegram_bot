@@ -1,20 +1,33 @@
-import { EtherscanProvider, InfuraProvider } from "ethers";
 import TelegramBot, { User } from "node-telegram-bot-api";
-import { Account, UserEntity } from "../type";
 import { ETHERSCAN_ID, INFURA_ID } from "../utils/constants";
-import { bigintToNumber, createAccount, parseKey } from "../utils/ether";
 import { walletDetail, walletMsg } from "../utils/replyMessage";
+import {
+  parseKey,
+  createAccount,
+  bigintToNumber,
+  shortenAddress,
+} from "../utils/utils";
+import { UserEntity, Account } from "../utils/types";
 import { RedisService } from "./redis.service";
+import { UniswapService } from "./uniswap.service";
+import { providers } from "ethers";
 
 export class TeleService {
-  private provider: InfuraProvider;
-  private etherscan: EtherscanProvider;
+  private provider: providers.InfuraProvider;
+  private etherscan: providers.EtherscanProvider;
   private cache: RedisService;
+  private uniswap: UniswapService;
 
   constructor() {
-    this.provider = new InfuraProvider(1, INFURA_ID);
-    this.etherscan = new EtherscanProvider(1, ETHERSCAN_ID);
+    this.provider = new providers.InfuraProvider(1, INFURA_ID);
+    this.etherscan = new providers.EtherscanProvider(1, ETHERSCAN_ID);
+    this.uniswap = new UniswapService();
     this.cache = new RedisService();
+  }
+
+  async hi(userId: number) {
+    const user = (await this.cache.get(userId)) as UserEntity;
+    this.uniswap.checkBalance(user?.accounts[0].address);
   }
 
   async commandStart(user: User) {
@@ -100,7 +113,10 @@ export class TeleService {
   async listWallet(userId: number): Promise<TelegramBot.SendMessageOptions> {
     const user = (await this.cache.get(userId)) as UserEntity;
     const accountList = user.accounts?.map((acc) => [
-      { text: acc.address, callback_data: `detail ${acc.address}` },
+      {
+        text: shortenAddress(acc.address, 8),
+        callback_data: `detail ${acc.address}`,
+      },
       { text: "❌ Delete", callback_data: `remove ${acc.address}` },
     ]);
 

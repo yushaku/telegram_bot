@@ -1,9 +1,21 @@
+import { z } from "zod";
+
 export const {
   TELE_BOT_ID = "",
   SERVER_URL = "",
   INFURA_ID = "",
   ETHERSCAN_ID = "",
 } = process.env;
+
+const envSchema = z.object({
+  NODE_ENV: z.enum(["TESTNET", "MAINNET", "ZKSYNC"]).default("TESTNET"),
+  TELE_BOT_ID: z.string(),
+  SERVER_URL: z.string(),
+  INFURA_ID: z.string().nonempty(),
+  ETHERSCAN_ID: z.string().nonempty(),
+});
+
+export const env = envSchema.parse(process.env);
 
 export const TELEGRAM_API = `https://api.telegram.org/bot${TELE_BOT_ID}`;
 export const URI = `webhook/${TELE_BOT_ID}`;

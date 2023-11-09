@@ -1,9 +1,12 @@
+import { CurrencyAmount, Token } from "@uniswap/sdk-core";
+import { Pair, Route as RouteV2 } from "@uniswap/v2-sdk";
 import IUniswapV3PoolABI from "@uniswap/v3-core/artifacts/contracts/interfaces/IUniswapV3Pool.sol/IUniswapV3Pool.json";
-import { computePoolAddress } from "@uniswap/v3-sdk";
+import {
+  FACTORY_ADDRESS as FACTORY_ADDRESS_V3,
+  computePoolAddress,
+} from "@uniswap/v3-sdk";
 import { ethers } from "ethers";
-
-import { CurrentConfig } from "../servises/uniswap.service";
-import { POOL_FACTORY_CONTRACT_ADDRESS } from "./token";
+import uniswapV2poolABI from "../abis/uniV2pool.json";
 import { getProvider } from "./provider";
 
 interface PoolInfo {
@@ -16,17 +19,18 @@ interface PoolInfo {
   tick: number;
 }
 
-export async function getPoolInfo(): Promise<PoolInfo> {
+export async function getPoolInfoV3(
+  tokenA: Token,
+  tokenB: Token,
+  poolFee: any,
+): Promise<PoolInfo> {
   const provider = getProvider();
-  if (!provider) {
-    throw new Error("No provider");
-  }
 
   const currentPoolAddress = computePoolAddress({
-    factoryAddress: POOL_FACTORY_CONTRACT_ADDRESS,
-    tokenA: CurrentConfig.tokens.in,
-    tokenB: CurrentConfig.tokens.out,
-    fee: CurrentConfig.tokens.poolFee,
+    factoryAddress: FACTORY_ADDRESS_V3,
+    tokenA,
+    tokenB,
+    fee: poolFee,
   });
 
   const poolContract = new ethers.Contract(
@@ -54,4 +58,38 @@ export async function getPoolInfo(): Promise<PoolInfo> {
     sqrtPriceX96: slot0[0],
     tick: slot0[1],
   };
+}
+
+export async function getPoolInfoV2(
+  tokenA: Token,
+  tokenB: Token,
+): Promise<Pair> {
+  const pairAddress = Pair.getAddress(tokenA, tokenB);
+  const provider = getProvider();
+
+  const pairContract = new ethers.Contract(
+    pairAddress,
+    uniswapV2poolABI,
+    provider,
+  );
+  const [reserve0, reserve1] = await pairContract["getReserves"]();
+
+  const tokens = [tokenA, tokenB];
+  const [token0, token1] = tokens[0].sortsBefore(tokens[1])
+    ? tokens
+    : [tokens[1], tokens[0]];
+
+  return new Pair(
+    CurrencyAmount.fromRawAmount(token0, reserve0),
+    CurrencyAmount.fromRawAmount(token1, reserve1),
+  );
+}
+
+export async function getRouteV2(tokenA: Token, tokenB: Token) {
+  const pair = await getPoolInfoV2(tokenA, tokenB);
+  const route = new RouteV2([pair], tokenB, tokenA);
+  console.log(route.midPrice.toSignificant(6)); // 1901.08
+  console.log(route.midPrice.invert().toSignificant(6)); // 0.000526017
+
+  return route;
 }
