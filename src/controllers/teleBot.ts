@@ -47,6 +47,12 @@ export class TeleBot {
       this.bot.sendMessage(msg.chat.id, START_MESSAGE, START_BUTTONS);
     });
 
+    this.bot.onText(/\/hi/, (msg) => {
+      if (!msg.from) return;
+      this.teleService.hi(msg.from.id);
+      this.bot.sendMessage(msg.chat.id, "hello");
+    });
+
     this.bot.onText(/\/wallet/, async (msg) => {
       const id = msg.from?.id;
       if (!id) return;

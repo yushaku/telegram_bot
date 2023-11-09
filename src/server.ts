@@ -2,8 +2,7 @@ import { cors } from "@elysiajs/cors";
 import axios from "axios";
 import { Elysia } from "elysia";
 import { TELEGRAM_API, TELE_BOT_ID, WEBHOOK_URL } from "./utils/constants";
-import { authController, checkHealth } from "./controllers";
-import { TeleBot } from "./lib/tele";
+import { TeleBot, authController, checkHealth } from "./controllers";
 
 const teleBot = new TeleBot(TELE_BOT_ID);
 teleBot.init();
