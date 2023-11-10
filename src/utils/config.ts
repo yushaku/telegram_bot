@@ -1,5 +1,5 @@
 import { Token } from "@uniswap/sdk-core";
-import { WETH, USDC } from "./token";
+import { UNI, WETH } from "./token";
 
 export type Environment = "TESTNET" | "MAINNET" | "ZKSYNC";
 
@@ -37,7 +37,7 @@ export const CurrentConfig: UniConfig = {
   tokens: {
     in: WETH,
     amountIn: 1,
-    out: USDC,
+    out: UNI,
     poolFee: 0,
   },
 };

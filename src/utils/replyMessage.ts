@@ -91,7 +91,73 @@ export const walletDetail = ({
   ethPrice: number;
   balance: number;
 }) => `
-⏹️  Block: ${block} 
-💠  ETH: $${ethPrice}
-💎  Wallet Balance: ${balance}
+⏹️  Block:  ${block} 
+💠  ETH:  $${ethPrice}
+💎  Wallet Balance:  $${balance}
+`;
+
+export const tokenDetail = ({
+  name,
+  symbol,
+  address,
+  decimals,
+  supply,
+  marketcap,
+  price,
+}: {
+  address: string;
+  name: string;
+  symbol: string;
+  decimals: number;
+  supply: number;
+  marketcap: number;
+  price: number;
+}) => `
+🔬  ${name} (${symbol})  -  Chain: Etherscan
+
+Links: [Etherscan](https://etherscan.io/token/${address})  -  📈Chart
+Supply: ${supply} ⬩ Decimals: ${decimals}
+Marketcap: $${marketcap}
+Price: $${price}
+Address: ${address}
+
+🍯 Honeypot Check: Doesnt seem like a [honeypot](https://honeypot.is/ethereum?address=${address})
+`;
+
+export const esstimateSwap = ({
+  tokenA,
+  tokenB,
+  amountA,
+  amountB,
+  amountIn,
+  amountOut,
+  gwei,
+  dollars,
+  ratio,
+}: {
+  tokenA: string;
+  tokenB: string;
+  amountIn: number;
+  gwei: number;
+  amountA: number;
+  amountB: number;
+  dollars: number;
+  amountOut: number;
+  ratio: number;
+}) => `
+Estimate ${tokenA}       ➡️      ${tokenB}
+You pay \`${amountIn}\` ${tokenA} in your balance: \`${amountA}\`
+You receive \`${amountOut}\` ${tokenB}
+
+---
+💰 ${tokenB}'s balance from \`${amountB}\` to \`${amountB + amountOut}\`
+💰 1 ${tokenB} = \`${ratio}\` ${tokenA}
+---
+
+📉 Max slipage: \`0.5%\` _auto_
+💸 Fee: $\`0\`
+⛽ Network cose: \`${gwei}\` GWEI = $${dollars}
+
+---
+⏲️ This transaction will expire after 1 minute
 `;

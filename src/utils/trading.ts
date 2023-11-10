@@ -32,8 +32,7 @@ import {
   TOKEN_AMOUNT_TO_APPROVE_FOR_TRANSFER,
 } from "./token";
 import { fromReadableAmount } from "./utils";
-
-export type TokenTrade = Trade<Token, Token, TradeType>;
+import { TokenTrade } from "./types";
 
 export async function createTrade(
   tokenA: Token,

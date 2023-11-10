@@ -35,3 +35,5 @@ export const BUY_TOKEN = "buy_token";
 export const BUY_LIMIT = "buy_limit";
 export const SELL_TOKEN = "sell_token";
 export const SELL_LIMIT = "sell_limit";
+
+export const CLOSE = "close";

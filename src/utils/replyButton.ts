@@ -11,7 +11,10 @@ import {
   SELL_TOKEN,
   SET_SPLIPAGE,
   SET_MAX_GAS,
+  CLOSE,
 } from "./constants";
+import { chainId } from "./token";
+import { ChainId } from "@uniswap/sdk-core";
 
 export const PREMIUM_BUTTONS = {
   reply_markup: {
@@ -72,7 +75,7 @@ export const WALLET_BUTTONS: TelegramBot.SendMessageOptions = {
         { text: "Import Wallet", callback_data: IMPORT_WALLET },
         { text: "Create Wallet", callback_data: CREATE_WALLET },
       ],
-      [{ text: "List Wallet", callback_data: LIST_WALLET }],
+      [{ text: "Pick an wallet to trade", callback_data: LIST_WALLET }],
     ],
   },
 };
@@ -96,3 +99,83 @@ export const DETAIL_WALLET_BUTTONS = {
     ],
   },
 };
+
+export const TOKENS_BUTTONS =
+  chainId === ChainId.MAINNET
+    ? {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text: "USDC",
+                callback_data: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+              },
+              {
+                text: "USDT",
+                callback_data: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+              },
+              {
+                text: "DAI",
+                callback_data: "0x6b175474e89094c44da98b954eedeac495271d0f",
+              },
+              {
+                text: "TUSD",
+                callback_data: "0x0000000000085d4780B73119b644AE5ecd22b376",
+              },
+            ],
+            [
+              { text: "WETH", callback_data: BUY_LIMIT },
+              {
+                text: "WBTC",
+                callback_data: "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
+              },
+            ],
+            [
+              {
+                text: "TRON",
+                callback_data: "0x50327c6c5a14DCaDE707ABad2E27eB517df87AB5",
+              },
+              {
+                text: "LINK",
+                callback_data: "0x514910771AF9Ca656af840dff83E8264EcF986CA",
+              },
+              {
+                text: "BNB",
+                callback_data: "0xB8c77482e45F1F44dE1745F52C74426C631bDD52",
+              },
+            ],
+            [
+              {
+                text: "MATIC",
+                callback_data: "0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0",
+              },
+              {
+                text: "UNI",
+                callback_data: "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
+              },
+              {
+                text: "LEO",
+                callback_data: "0x2AF5D2aD76741191D15Dfe7bF6aC92d4Bd912Ca3",
+              },
+            ],
+            [{ text: "✖️  Close", callback_data: CLOSE }],
+          ],
+        },
+      }
+    : {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text: "📀 WETH TEST",
+                callback_data: "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6",
+              },
+              {
+                text: "🦄 UNI TEST",
+                callback_data: "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984",
+              },
+            ],
+            [{ text: "✖️  Close", callback_data: CLOSE }],
+          ],
+        },
+      };
