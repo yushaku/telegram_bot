@@ -17,6 +17,11 @@ const envSchema = z.object({
 
 export const env = envSchema.parse(process.env);
 
+export const BASE_SCANNER =
+  env.NODE_ENV === "TESTNET"
+    ? "https://goerli.infura.io/v3"
+    : "https://mainnet.infura.io/v3";
+
 export const TELEGRAM_API = `https://api.telegram.org/bot${TELE_BOT_ID}`;
 export const URI = `webhook/${TELE_BOT_ID}`;
 export const WEBHOOK_URL = SERVER_URL + URI;

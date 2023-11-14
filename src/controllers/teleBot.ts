@@ -57,7 +57,7 @@ export class TeleBot {
 
     this.bot.onText(/\/hi/, async (msg) => {
       if (!msg.from) return;
-      this.teleService.hi(msg.from.id);
+      this.teleService.hello(msg.from.id);
       const sent = await this.bot.sendMessage(msg.chat.id, "hello");
     });
 

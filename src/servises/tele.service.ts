@@ -14,7 +14,7 @@ import {
   shortenAddress,
   shortenAmount,
 } from "../utils/utils";
-import { Account } from "../utils/types";
+import { Account, isTransaction } from "../utils/types";
 import { RedisService } from "./redis.service";
 import { UniswapService } from "./uniswap.service";
 import { providers } from "ethers";
@@ -45,7 +45,7 @@ export class TeleService {
 
     console.log("check approval");
 
-    this.uniswap.getTokenTransferApproval({
+    this.uniswap.checkTokenApproval({
       token: tokenA,
       account,
       amount,
@@ -64,6 +64,48 @@ export class TeleService {
     const a = await this.uniswap.executeTrade({ trade, account });
 
     console.log(a);
+  }
+
+  async hello(userId: number) {
+    const user = await this.cache.getUser(userId);
+    const account = user.accounts.at(0);
+    if (!account) return;
+
+    const tokenA = WETH;
+    const tokenB = UNI;
+    const amount = 0.01;
+
+    console.log("check approval");
+
+    this.uniswap.checkTokenApproval({
+      token: tokenA,
+      account,
+      amount,
+    });
+
+    console.log("create trade");
+
+    const route = await this.uniswap.generateRoute({
+      walletAddress: account.address,
+      tokenA,
+      tokenB,
+      amount,
+    });
+
+    if (!route) return;
+
+    console.log("execute trade");
+    const tx = await this.uniswap.executeRoute({ route, account });
+    if (isTransaction(tx)) {
+      console.log(tx);
+      const receive = await tx.wait();
+      if (receive.status === 0) {
+        console.log("Swap transaction failed");
+      }
+      console.log(receive);
+    }
+
+    console.log(tx);
   }
 
   async commandStart(user: User) {
@@ -297,7 +339,7 @@ export class TeleService {
 
     console.log("approved token");
 
-    await this.uniswap.getTokenTransferApproval({
+    await this.uniswap.checkTokenApproval({
       token,
       account: wallet,
       amount: 100,

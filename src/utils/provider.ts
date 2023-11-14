@@ -7,6 +7,11 @@ import { TransactionRequest } from "@ethersproject/providers";
 const mainnetProvider = new ethers.providers.JsonRpcProvider(
   CurrentConfig.rpc.mainnet,
 );
+
+const testnetProvider = new ethers.providers.JsonRpcProvider(
+  CurrentConfig.rpc.testnet,
+);
+
 const wallet = createWallet();
 
 export enum TransactionState {
@@ -29,13 +34,13 @@ export function getProvider() {
       return new ZkProvider("https://testnet.era.zksync.dev");
 
     case "TESTNET":
-      return new ethers.providers.JsonRpcProvider(CurrentConfig.rpc.testnet);
+      return testnetProvider;
 
     case "MAINNET":
       return mainnetProvider;
 
     default:
-      return mainnetProvider;
+      return testnetProvider;
   }
 }
 

@@ -157,22 +157,20 @@ export class UniswapService {
 
       const signedTransaction = await signer.signTransaction({
         ...tx,
-        nonce,
-        gasLimit,
+        nonce: nonce + 15,
+        gasLimit: BigNumber.from("800000"),
       });
 
       console.log("send transaction");
 
-      const txResponse = await this.provider.sendTransaction(signedTransaction);
-
-      return txResponse;
+      return this.provider.sendTransaction(signedTransaction);
     } catch (error) {
       console.log(error);
       return "Buy token failed";
     }
   }
 
-  async getTokenTransferApproval({
+  async checkTokenApproval({
     token,
     account,
     amount,
@@ -190,7 +188,7 @@ export class UniswapService {
         V3_SWAP_ROUTER_ADDRESS,
       );
 
-      if (allowedAmount >= amount) return "ok";
+      if (allowedAmount >= amount) return "Ok";
 
       const transaction = await tokenContract.approve(
         V3_SWAP_ROUTER_ADDRESS,
@@ -201,7 +199,7 @@ export class UniswapService {
       );
 
       await transaction.wait();
-      return "ok";
+      return "Ok";
     } catch (e) {
       console.error(e);
       return TransactionState.Failed;
@@ -219,10 +217,7 @@ export class UniswapService {
     amount: number;
     poolFee?: number;
   }): Promise<TokenTrade> {
-    console.info("fuck");
-    const poolInfo = await getPoolInfoV3(tokenA, tokenB, poolFee);
-    console.info("poolInfo", poolInfo);
-
+    const poolInfo = await getPoolInfoV3(tokenA, tokenB);
     const pool = new Pool(
       tokenA,
       tokenB,
@@ -233,7 +228,13 @@ export class UniswapService {
     );
 
     const route = new Route([pool], tokenA, tokenB);
-    const amountOut = await this.getOutputQuote({ tokenA, amount, route });
+
+    console.log("get output quote");
+    const amountOut = await this.getOutputQuote({
+      token: tokenA,
+      amount,
+      route,
+    });
 
     console.log({ route, amountOut });
 
@@ -283,31 +284,28 @@ export class UniswapService {
 
   async getOutputQuote({
     route,
-    tokenA,
+    token,
     amount,
   }: {
     route: Route<Currency, Currency>;
-    tokenA: Token;
+    token: Token;
     amount: number;
   }) {
     const { calldata } = SwapQuoter.quoteCallParameters(
       route,
       CurrencyAmount.fromRawAmount(
-        tokenA,
-        fromReadableAmount(amount, tokenA.decimals).toString(),
+        token,
+        fromReadableAmount(amount, token.decimals).toString(),
       ),
       TradeType.EXACT_INPUT,
       { useQuoterV2: true },
     );
 
-    const quoteCallReturnData = await this.provider.call({
+    const data = await this.provider.call({
       to: QUOTER_CONTRACT_ADDRESS,
       data: calldata,
     });
 
-    return ethers.utils.defaultAbiCoder.decode(
-      ["uint256"],
-      quoteCallReturnData,
-    );
+    return ethers.utils.defaultAbiCoder.decode(["uint256"], data);
   }
 }

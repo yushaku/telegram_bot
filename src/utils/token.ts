@@ -3,6 +3,7 @@
 
 import { Token, ChainId, WETH9 } from "@uniswap/sdk-core";
 import { env } from "./constants";
+import { NATIVE_CURRENCY, USDC_GOERLI, USDC_MAINNET } from "@uniswap/smart-order-router";
 
 export const SKSYNC = 280
 export const chainId = env.NODE_ENV === 'TESTNET' ? ChainId.GOERLI : ChainId.MAINNET 
@@ -20,8 +21,10 @@ export const ZKSYNC_WEAV = new Token(SKSYNC, "0xA4c011A4C65b01198a2FF314B7557bB0
 export const GOERLI_WETH = new Token(ChainId.GOERLI, "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6", 18);
 export const GOERLI_UNI = new Token(ChainId.GOERLI, "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984", 18);
 
+export const NATIVE_TOKEN = NATIVE_CURRENCY[chainId]
 export const WETH = env.NODE_ENV === 'TESTNET' ? GOERLI_WETH : MAIN_WETH 
-export const UNI = env.NODE_ENV === 'TESTNET' ? GOERLI_UNI : MAIN_UNI 
+export const UNI  = env.NODE_ENV === 'TESTNET' ? GOERLI_UNI : MAIN_UNI 
+export const USDC = env.NODE_ENV === 'TESTNET' ? USDC_GOERLI : USDC_MAINNET 
 
 
 // 0x1F98431c8aD98523631AE4a59f267346ea31F984 

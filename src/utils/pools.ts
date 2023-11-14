@@ -3,6 +3,7 @@ import { Pair, Route as RouteV2 } from "@uniswap/v2-sdk";
 import IUniswapV3PoolABI from "@uniswap/v3-core/artifacts/contracts/interfaces/IUniswapV3Pool.sol/IUniswapV3Pool.json";
 import {
   FACTORY_ADDRESS as FACTORY_ADDRESS_V3,
+  FeeAmount,
   computePoolAddress,
 } from "@uniswap/v3-sdk";
 import { ethers } from "ethers";
@@ -22,7 +23,6 @@ interface PoolInfo {
 export async function getPoolInfoV3(
   tokenA: Token,
   tokenB: Token,
-  poolFee: any,
 ): Promise<PoolInfo> {
   const provider = getProvider();
 
@@ -30,7 +30,7 @@ export async function getPoolInfoV3(
     factoryAddress: FACTORY_ADDRESS_V3,
     tokenA,
     tokenB,
-    fee: poolFee,
+    fee: FeeAmount.MEDIUM,
   });
 
   const poolContract = new ethers.Contract(
@@ -38,8 +38,6 @@ export async function getPoolInfoV3(
     IUniswapV3PoolABI.abi,
     provider,
   );
-
-  console.log(currentPoolAddress);
 
   const [token0, token1, fee, tickSpacing, liquidity, slot0] =
     await Promise.all([
