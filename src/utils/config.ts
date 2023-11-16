@@ -3,30 +3,12 @@ import { UNI, WETH } from "./token";
 
 export type Environment = "TESTNET" | "MAINNET" | "ZKSYNC";
 
-export type UniConfig = {
-  env: Environment;
+export const CurrentConfig = {
   rpc: {
-    testnet: string;
-    mainnet: string;
-    zksync: string;
-  };
-  wallet: {
-    address: string;
-    privateKey: string;
-  };
-  tokens: {
-    in: Token;
-    amountIn: number;
-    out: Token;
-    poolFee: number;
-  };
-};
-
-export const CurrentConfig: UniConfig = {
-  env: "MAINNET",
-  rpc: {
-    testnet: "https://goerli.infura.io/v3/354872a8849140a48afe69abdea29f00",
-    mainnet: "https://mainnet.infura.io/v3/354872a8849140a48afe69abdea29f00",
+    testnet:
+      "https://eth-goerli.g.alchemy.com/v2/e7ZIQdFSq8BUrGsFCV41sqBcf1t8ZzZy",
+    mainnet:
+      "https://eth-mainnet.g.alchemy.com/v2/G52kJXx2IBe-2K5aTk-pI29YQadXz-ZD",
     zksync: "https://testnet.era.zksync.dev",
   },
   wallet: {

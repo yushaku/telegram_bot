@@ -30,7 +30,10 @@ function countDecimals(x: number) {
   return x.toString().split(".")[1].length || 0;
 }
 
-export function toReadableAmount(rawAmount: number, decimals = 18): string {
+export function toReadableAmount(
+  rawAmount: number | BigNumber,
+  decimals = 18,
+): string {
   return formatUnits(rawAmount, decimals);
 }
 

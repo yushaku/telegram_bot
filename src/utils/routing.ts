@@ -17,7 +17,7 @@ import {
   MAX_PRIORITY_FEE_PER_GAS,
   ERC20_ABI,
   TOKEN_AMOUNT_TO_APPROVE_FOR_TRANSFER,
-  V3_SWAP_ROUTER_ADDRESS,
+  V2_SWAP_ROUTER_ADDRESS,
   chainId,
 } from "./token";
 import { fromReadableAmount } from "./utils";
@@ -71,7 +71,7 @@ export async function executeRoute(
 
   const res = await sendTransaction({
     data: route.methodParameters?.calldata,
-    to: V3_SWAP_ROUTER_ADDRESS,
+    to: V2_SWAP_ROUTER_ADDRESS,
     value: route?.methodParameters?.value,
     from: walletAddress,
     maxFeePerGas: MAX_FEE_PER_GAS,
@@ -99,7 +99,7 @@ export async function getTokenTransferApproval(
     );
 
     const transaction = await tokenContract.approve(
-      V3_SWAP_ROUTER_ADDRESS,
+      V2_SWAP_ROUTER_ADDRESS,
       fromReadableAmount(
         TOKEN_AMOUNT_TO_APPROVE_FOR_TRANSFER,
         token.decimals,

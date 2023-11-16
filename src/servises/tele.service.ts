@@ -1,6 +1,6 @@
 import TelegramBot, { User } from "node-telegram-bot-api";
 import { v4 as uuidv4 } from "uuid";
-import { CLOSE, ETHERSCAN_ID, INFURA_ID } from "../utils/constants";
+import { CLOSE, ETHERSCAN_ID, INFURA_ID, INIT_POOL } from "../utils/constants";
 import {
   esstimateSwap,
   tokenDetail,
@@ -14,7 +14,7 @@ import {
   shortenAddress,
   shortenAmount,
 } from "../utils/utils";
-import { Account, isTransaction } from "../utils/types";
+import { Account, PositionInfo, isTransaction } from "../utils/types";
 import { RedisService } from "./redis.service";
 import { UniswapService } from "./uniswap.service";
 import { providers } from "ethers";
@@ -63,7 +63,15 @@ export class TeleService {
 
     const a = await this.uniswap.executeTrade({ trade, account });
 
-    console.log(a);
+    if (!isTransaction(a)) return a;
+
+    console.log(a.hash);
+    return `Buying...\nCheckout [etherscan](https://goerli.etherscan.io/tx/${a.hash})`;
+
+    // const receive: TransactionReceipt = await a.wait();
+    // console.log(receive);
+    // if (receive.status === 0) return "Swap transaction failed";
+    // else return `Buy completed \n checkout etherscan  https://goerli.etherscan.io/${receive.transactionHash}`;
   }
 
   async hello(userId: number) {
@@ -92,20 +100,68 @@ export class TeleService {
       amount,
     });
 
-    if (!route) return;
+    if (!route) return "create route failed";
 
     console.log("execute trade");
     const tx = await this.uniswap.executeRoute({ route, account });
-    if (isTransaction(tx)) {
-      console.log(tx);
-      const receive = await tx.wait();
-      if (receive.status === 0) {
-        console.log("Swap transaction failed");
-      }
-      console.log(receive);
-    }
+    if (!isTransaction(tx)) return "Route execute failed";
 
-    console.log(tx);
+    const receive = await tx.wait();
+    if (receive.status === 0) {
+      return "Swap transaction failed";
+    }
+    return `Buy completed\ncheckout [etherscan](https://goerli.etherscan.io/${receive.transactionHash})`;
+  }
+
+  async conichiwa(userId: number) {
+    const user = await this.cache.getUser(userId);
+    const account = user.accounts.at(0);
+    if (!account) return;
+
+    const tokenA = WETH;
+    const tokenB = UNI;
+    const amount = 0.01;
+
+    const ids = await this.uniswap.getPositionIds(account.address);
+    const positionsInfo = await Promise.all(
+      ids.map((id) => this.uniswap.getPositionInfo(id)),
+    );
+
+    positionsInfo
+      .map((id, index) => [id, positionsInfo[index]])
+      .map((info) => {
+        const id = info[0];
+        const posInfo = info[1] as PositionInfo;
+        return `${id}: ${posInfo.liquidity.toString()} liquidity, owed ${posInfo.tokensOwed0.toString()} and ${posInfo.tokensOwed1.toString()}`;
+      })
+      .join("\n");
+
+    return {
+      text: `List your pools \n ${positionsInfo}`,
+      buttons: {
+        reply_markup: {
+          inline_keyboard: [[{ text: "Init pool", callback_data: INIT_POOL }]],
+        },
+      },
+    };
+  }
+  async initPool(userId: number) {
+    const user = await this.cache.getUser(userId);
+    const account = user.accounts.at(0);
+    if (!account) return;
+
+    const tokenA = WETH;
+    const tokenB = UNI;
+    const amountA = 0.01;
+    const amountB = 0.01;
+
+    this.uniswap.mintPosition({
+      account,
+      tokenA,
+      tokenB,
+      amountA,
+      amountB,
+    });
   }
 
   async commandStart(user: User) {
@@ -347,11 +403,13 @@ export class TeleService {
 
     console.log("start swappp");
 
-    const a = await this.uniswap.executeRoute({
+    const result = await this.uniswap.executeRoute({
       account: wallet,
       route: data,
     });
-    return a;
+    console.log(result);
+
+    return result;
   }
 
   async getDetails(wallet: string) {

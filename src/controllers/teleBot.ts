@@ -8,6 +8,7 @@ import {
   SET_SPLIPAGE,
   SET_MAX_GAS,
   CLOSE,
+  INIT_POOL,
 } from "../utils/constants";
 import {
   DETAIL_WALLET_BUTTONS,
@@ -18,19 +19,30 @@ import {
 import { TeleService } from "../servises/tele.service";
 import { isAddress } from "../utils/utils";
 import { isTransaction } from "../utils/types";
+import { UniswapService } from "../servises/uniswap.service";
 
 export class TeleBot {
   private readonly bot: TelegramBot;
   private teleService: TeleService;
+  private uniswapService: UniswapService;
 
   constructor(teleId: string) {
     this.bot = new TelegramBot(teleId, { polling: true });
     this.teleService = new TeleService();
+    this.uniswapService = new UniswapService();
   }
 
   init() {
     console.log(`🤖 Telegram bot is running`);
     this.bot.setMyCommands([
+      {
+        command: "/trade",
+        description: "trading from weth to uni",
+      },
+      {
+        command: "/route",
+        description: "use route to swap weth -> uni",
+      },
       {
         command: "/sniper",
         description: "Summons the Tigon bot main panel",
@@ -55,10 +67,45 @@ export class TeleBot {
       this.bot.sendMessage(msg.chat.id, START_MESSAGE, START_BUTTONS);
     });
 
-    this.bot.onText(/\/hi/, async (msg) => {
+    this.bot.onText(/\/trade/, async (msg) => {
       if (!msg.from) return;
-      this.teleService.hello(msg.from.id);
-      const sent = await this.bot.sendMessage(msg.chat.id, "hello");
+      const sent = await this.bot.sendMessage(
+        msg.chat.id,
+        "Swap from weth to uni",
+      );
+      const text = await this.teleService.hi(msg.from.id);
+      this.bot.editMessageText(text ?? "hello", {
+        message_id: sent.message_id,
+        chat_id: sent.chat.id,
+      });
+    });
+
+    this.bot.onText(/\/route/, async (msg) => {
+      if (!msg.from) return;
+      const sent = await this.bot.sendMessage(
+        msg.chat.id,
+        "create route from WETH to UNI",
+      );
+      const text = await this.teleService.hello(msg.from.id);
+      this.bot.editMessageText(text ?? "hello", {
+        message_id: sent.message_id,
+        chat_id: sent.chat.id,
+      });
+    });
+
+    this.bot.onText(/\/get (.+)/, async (msg, match) => {
+      const resp = match?.at(1);
+      if (!msg.from || !resp) return;
+      const a = await this.uniswapService.checkhash(resp);
+      console.log(a);
+
+      // const data = await this.teleService.conichiwa(msg.from.id);
+      // if (!data) return;
+      // const { text, buttons } = data;
+      const sent = await this.bot.sendMessage(
+        msg.chat.id,
+        `check ${a?.status}`,
+      );
     });
 
     this.bot.onText(/\/tokens/, (msg) => {
@@ -245,6 +292,11 @@ export class TeleBot {
         case FEATURES_WALLET: {
           const text = await this.teleService.commandWallet(userId);
           return this.bot.sendMessage(chatId, text, WALLET_BUTTONS);
+        }
+
+        case INIT_POOL: {
+          const a = await this.teleService.initPool(query.from.id);
+          return this.bot.sendMessage(chatId, "ok");
         }
 
         case SET_MAX_GAS:

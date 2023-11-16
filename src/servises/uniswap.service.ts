@@ -9,10 +9,11 @@ import {
 import {
   MAX_FEE_PER_GAS,
   MAX_PRIORITY_FEE_PER_GAS,
+  NONFUNGIBLE_POSITION_MANAGER_ABI,
+  NONFUNGIBLE_POSITION_MANAGER_CONTRACT_ADDRESS,
   QUOTER_CONTRACT_ADDRESS,
   SWAP_ROUTER_ADDRESS,
-  TOKEN_AMOUNT_TO_APPROVE_FOR_TRANSFER,
-  V3_SWAP_ROUTER_ADDRESS,
+  V2_SWAP_ROUTER_ADDRESS,
   chainId,
 } from "../utils/token";
 import { TransactionState, getProvider } from "../utils/provider";
@@ -27,12 +28,25 @@ import {
   SwapRoute,
   AlphaRouter,
   SwapOptionsSwapRouter02,
+  SwapOptionsUniversalRouter,
   SwapType,
   SwapOptions,
 } from "@uniswap/smart-order-router";
-import { Account, TokenTrade } from "../utils/types";
-import { Pool, Route, Trade, SwapRouter, SwapQuoter } from "@uniswap/v3-sdk";
+import { Account, PositionInfo, TokenTrade } from "../utils/types";
+import {
+  Pool,
+  Route,
+  Trade,
+  SwapRouter,
+  SwapQuoter,
+  MintOptions,
+  NonfungiblePositionManager,
+  Position,
+  nearestUsableTick,
+  FeeAmount,
+} from "@uniswap/v3-sdk";
 import { getPoolInfoV3 } from "../utils/pools";
+import { TransactionRequest } from "@ethersproject/providers";
 
 export class UniswapService {
   private provider: ethers.providers.JsonRpcProvider;
@@ -105,15 +119,17 @@ export class UniswapService {
     const options: SwapOptionsSwapRouter02 = {
       recipient: walletAddress,
       slippageTolerance: new Percent(50, 10_000),
-      deadline: Math.floor(Date.now() / 1000 + 1800),
+      deadline: Math.floor(Date.now() / 1000 + 30 * 60), // 1800 seconds – 30 mins deadline
       type: SwapType.SWAP_ROUTER_02,
     };
 
+    const amountIn = CurrencyAmount.fromRawAmount(
+      tokenA,
+      fromReadableToAmount(amount, tokenA.decimals).toString(),
+    );
+
     const route = await router.route(
-      CurrencyAmount.fromRawAmount(
-        tokenA,
-        fromReadableToAmount(amount, tokenA.decimals).toString(),
-      ),
+      amountIn,
       tokenB,
       TradeType.EXACT_INPUT,
       options,
@@ -132,13 +148,17 @@ export class UniswapService {
     const tx = {
       chainId,
       from: account.address,
-      to: V3_SWAP_ROUTER_ADDRESS,
+      to: V2_SWAP_ROUTER_ADDRESS,
       data: route.methodParameters?.calldata,
       value: BigNumber.from(route?.methodParameters?.value),
     };
 
-    const txResponse = await this.sendTransaction({ account, tx });
-    return txResponse;
+    try {
+      return this.sendTransaction({ account, tx });
+    } catch (error) {
+      console.log(error);
+      return "Buy token failed";
+    }
   }
 
   async sendTransaction({
@@ -146,23 +166,31 @@ export class UniswapService {
     tx,
   }: {
     account: Account;
-    tx: Record<string, any>;
+    tx: TransactionRequest;
   }) {
     try {
       const signer = new Wallet(account.privateKey, this.provider);
-      const [nonce, gasLimit] = await Promise.all([
+      const [nonce, gasLimit, gasPrice] = await Promise.all([
         signer.getTransactionCount(),
         this.provider.getBlock("latest").then((data) => data.gasLimit),
+        this.provider.getGasPrice(),
       ]);
 
-      const signedTransaction = await signer.signTransaction({
+      const transaction = {
         ...tx,
-        nonce: nonce + 15,
-        gasLimit: BigNumber.from("800000"),
-      });
+        nonce: nonce + 5,
+        gasLimit: gasLimit,
+        gasPrice,
+      };
+
+      // const estimate = await signer.estimateGas(transaction);
+      // console.log({ estimate: toReadableAmount(estimate) });
+
+      const signedTransaction = await signer.signTransaction(transaction);
+
+      // transaction.gasLimit = estimate.add(estimate.div(10));
 
       console.log("send transaction");
-
       return this.provider.sendTransaction(signedTransaction);
     } catch (error) {
       console.log(error);
@@ -174,10 +202,12 @@ export class UniswapService {
     token,
     account,
     amount,
+    contractAddress = V2_SWAP_ROUTER_ADDRESS,
   }: {
     token: Token;
     amount: number;
     account: Account;
+    contractAddress?: string;
   }) {
     try {
       const signer = new Wallet(account.privateKey, this.provider);
@@ -185,23 +215,23 @@ export class UniswapService {
 
       const allowedAmount = await tokenContract.allowance(
         account.address,
-        V3_SWAP_ROUTER_ADDRESS,
+        contractAddress,
       );
 
+      console.log(`Allowed amount: ${toReadableAmount(allowedAmount)}`);
+
       if (allowedAmount >= amount) return "Ok";
+      const hexAmount = fromReadableToAmount(amount, token.decimals).toString();
 
       const transaction = await tokenContract.approve(
-        V3_SWAP_ROUTER_ADDRESS,
-        fromReadableAmount(
-          TOKEN_AMOUNT_TO_APPROVE_FOR_TRANSFER,
-          token.decimals,
-        ).toString(),
+        contractAddress,
+        hexAmount,
       );
 
       await transaction.wait();
       return "Ok";
-    } catch (e) {
-      console.error(e);
+    } catch (error) {
+      console.error(error);
       return TransactionState.Failed;
     }
   }
@@ -210,7 +240,7 @@ export class UniswapService {
     tokenA,
     tokenB,
     amount,
-    poolFee = 0,
+    poolFee = FeeAmount.MEDIUM,
   }: {
     tokenA: Token;
     tokenB: Token;
@@ -228,12 +258,12 @@ export class UniswapService {
     );
 
     const route = new Route([pool], tokenA, tokenB);
-
+    console.log(route);
     console.log("get output quote");
     const amountOut = await this.getOutputQuote({
       token: tokenA,
-      amount,
       route,
+      amount,
     });
 
     console.log({ route, amountOut });
@@ -271,12 +301,10 @@ export class UniswapService {
     const methodParameters = SwapRouter.swapCallParameters([trade], options);
 
     const tx = {
-      data: methodParameters.calldata,
+      from: account.address,
       to: SWAP_ROUTER_ADDRESS,
       value: methodParameters.value,
-      from: account.address,
-      maxFeePerGas: MAX_FEE_PER_GAS,
-      maxPriorityFeePerGas: MAX_PRIORITY_FEE_PER_GAS,
+      data: methodParameters.calldata,
     };
 
     return this.sendTransaction({ account, tx });
@@ -306,6 +334,166 @@ export class UniswapService {
       data: calldata,
     });
 
+    console.log({ data });
     return ethers.utils.defaultAbiCoder.decode(["uint256"], data);
+  }
+
+  async createPosition() {
+    // get calldata for minting a position
+    // const { calldata, value } = NonfungiblePositionManager.addCallParameters(
+    //   positionToMint,
+    //   mintOptions,
+    // );
+  }
+
+  async getPositionIds(address: string) {
+    const positionContract = new ethers.Contract(
+      NONFUNGIBLE_POSITION_MANAGER_CONTRACT_ADDRESS,
+      NONFUNGIBLE_POSITION_MANAGER_ABI,
+      this.provider,
+    );
+
+    const balance: number = await positionContract.balanceOf(address);
+
+    // Get all positions
+    const tokenIds = [];
+    for (let i = 0; i < balance; i++) {
+      const tokenOfOwnerByIndex: number =
+        await positionContract.tokenOfOwnerByIndex(address, i);
+      tokenIds.push(tokenOfOwnerByIndex);
+    }
+
+    return tokenIds;
+  }
+
+  async getPositionInfo(tokenId: number): Promise<PositionInfo> {
+    const positionContract = new ethers.Contract(
+      NONFUNGIBLE_POSITION_MANAGER_CONTRACT_ADDRESS,
+      NONFUNGIBLE_POSITION_MANAGER_ABI,
+      this.provider,
+    );
+
+    const position = await positionContract.positions(tokenId);
+
+    return {
+      tickLower: position.tickLower,
+      tickUpper: position.tickUpper,
+      liquidity: position.liquidity,
+      feeGrowthInside0LastX128: position.feeGrowthInside0LastX128,
+      feeGrowthInside1LastX128: position.feeGrowthInside1LastX128,
+      tokensOwed0: position.tokensOwed0,
+      tokensOwed1: position.tokensOwed1,
+    };
+  }
+
+  async constructPosition(
+    tokenA: CurrencyAmount<Token>,
+    tokenB: CurrencyAmount<Token>,
+  ): Promise<Position> {
+    // get pool info
+    const poolInfo = await getPoolInfoV3(tokenA.currency, tokenB.currency);
+
+    // construct pool instance
+    const configuredPool = new Pool(
+      tokenA.currency,
+      tokenB.currency,
+      poolInfo.fee,
+      poolInfo.sqrtPriceX96.toString(),
+      poolInfo.liquidity.toString(),
+      poolInfo.tick,
+    );
+
+    // create position using the maximum liquidity from input amounts
+    return Position.fromAmounts({
+      pool: configuredPool,
+      tickLower:
+        nearestUsableTick(poolInfo.tick, poolInfo.tickSpacing) -
+        poolInfo.tickSpacing * 2,
+      tickUpper:
+        nearestUsableTick(poolInfo.tick, poolInfo.tickSpacing) +
+        poolInfo.tickSpacing * 2,
+      amount0: tokenA.quotient,
+      amount1: tokenB.quotient,
+      useFullPrecision: true,
+    });
+  }
+
+  async mintPosition({
+    tokenA,
+    tokenB,
+    account,
+    amountA,
+    amountB,
+  }: {
+    tokenA: Token;
+    tokenB: Token;
+    account: Account;
+    amountA: number;
+    amountB: number;
+  }) {
+    console.log("start");
+
+    const [tokenInApproval, tokenOutApproval] = await Promise.all([
+      this.checkTokenApproval({
+        contractAddress: NONFUNGIBLE_POSITION_MANAGER_CONTRACT_ADDRESS,
+        amount: amountA,
+        token: tokenA,
+        account,
+      }),
+      this.checkTokenApproval({
+        contractAddress: NONFUNGIBLE_POSITION_MANAGER_CONTRACT_ADDRESS,
+        amount: amountB,
+        token: tokenB,
+        account,
+      }),
+    ]);
+    if (
+      tokenInApproval === TransactionState.Failed ||
+      tokenOutApproval === TransactionState.Failed
+    ) {
+      console.log("False");
+      return "False";
+    }
+
+    const positionToMint = await this.constructPosition(
+      CurrencyAmount.fromRawAmount(
+        tokenA,
+        fromReadableToAmount(amountA, tokenA.decimals),
+      ),
+      CurrencyAmount.fromRawAmount(
+        tokenB,
+        fromReadableToAmount(amountB, tokenB.decimals),
+      ),
+    );
+
+    const mintOptions: MintOptions = {
+      recipient: account.address,
+      deadline: Math.floor(Date.now() / 1000) + 60 * 20,
+      slippageTolerance: new Percent(50, 10_000),
+    };
+
+    // get calldata for minting a position
+    const { calldata, value } = NonfungiblePositionManager.addCallParameters(
+      positionToMint,
+      mintOptions,
+    );
+
+    // build transaction
+    const transaction: TransactionRequest = {
+      from: account.address,
+      to: NONFUNGIBLE_POSITION_MANAGER_CONTRACT_ADDRESS,
+      data: calldata,
+      value: value,
+      maxFeePerGas: MAX_FEE_PER_GAS,
+      maxPriorityFeePerGas: MAX_PRIORITY_FEE_PER_GAS,
+    };
+
+    console.log("transaction", transaction);
+
+    return this.sendTransaction({ account, tx: transaction });
+  }
+
+  async checkhash(hash: string) {
+    return this.provider.getTransactionReceipt(hash);
   }
 }

@@ -30,6 +30,7 @@ export const CRYPTO_API = "https://min-api.cryptocompare.com/data/price?fsym";
 export const FEATURES_PREMIUM = "premium";
 export const SET_SPLIPAGE = "set_splipage";
 export const SET_MAX_GAS = "set_max_gas";
+export const INIT_POOL = "create_position_uni";
 
 export const FEATURES_WALLET = "wallet feature";
 export const IMPORT_WALLET = "import_wallet";
