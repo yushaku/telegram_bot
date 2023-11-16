@@ -1,8 +1,8 @@
 import { Token, TradeType } from "@uniswap/sdk-core";
-import JSBI from "jsbi";
 import { Trade } from "@uniswap/v3-sdk";
 import { BigNumber, Wallet, ethers } from "ethers";
 import { formatUnits } from "ethers/lib/utils";
+import JSBI from "jsbi";
 
 export function fromReadableAmount(
   amount: number,
@@ -53,7 +53,9 @@ export function createAccount() {
   return Wallet.createRandom();
 }
 
-export function shortenAddress(str: string, numChars: number = 4) {
+export function shortenAddress(str: string | undefined, numChars: number = 4) {
+  if (!str) return "";
+
   return `${str.substring(0, numChars)}...${str.substring(
     str.length - numChars,
   )}`;

@@ -43,7 +43,6 @@ Premium Benefits ⭐
 - Speed Boost: Dedicated Premium Bot 🤖
 - Launch Tax/Deadblock Simulation 🕵️‍♂️
 - 8   ➡️ 30 Trade Monitors
-- 24 ➡️ 96 Hour Trades
 - 2   ➡️ 9 Multi-Wallets
 - 3   ➡️ 10 Copytrade Wallets
 - 3   ➡️ 10 Concurrent God Modes

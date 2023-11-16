@@ -1,6 +1,15 @@
 import TelegramBot, { User } from "node-telegram-bot-api";
 import { v4 as uuidv4 } from "uuid";
-import { CLOSE, ETHERSCAN_ID, INFURA_ID, INIT_POOL } from "../utils/constants";
+import {
+  BUY_LIMIT,
+  BUY_TOKEN,
+  CLOSE,
+  ETHERSCAN_ID,
+  INFURA_KEY,
+  INIT_POOL,
+  SELL_LIMIT,
+  SELL_TOKEN,
+} from "../utils/constants";
 import {
   esstimateSwap,
   tokenDetail,
@@ -13,8 +22,9 @@ import {
   bigintToNumber,
   shortenAddress,
   shortenAmount,
+  toReadableAmount,
 } from "../utils/utils";
-import { Account, PositionInfo, isTransaction } from "../utils/types";
+import { Account, isTransaction } from "../utils/types";
 import { RedisService } from "./redis.service";
 import { UniswapService } from "./uniswap.service";
 import { providers } from "ethers";
@@ -28,15 +38,14 @@ export class TeleService {
   private uniswap: UniswapService;
 
   constructor() {
-    this.provider = new providers.InfuraProvider(1, INFURA_ID);
+    this.provider = new providers.InfuraProvider(1, INFURA_KEY);
     this.etherscan = new providers.EtherscanProvider(1, ETHERSCAN_ID);
     this.uniswap = new UniswapService();
     this.cache = new RedisService();
   }
 
   async hi(userId: number) {
-    const user = await this.cache.getUser(userId);
-    const account = user.accounts.at(0);
+    const account = await this.getAccount(userId);
     if (!account) return;
 
     const tokenA = WETH;
@@ -75,8 +84,7 @@ export class TeleService {
   }
 
   async hello(userId: number) {
-    const user = await this.cache.getUser(userId);
-    const account = user.accounts.at(0);
+    const account = await this.getAccount(userId);
     if (!account) return;
 
     const tokenA = WETH;
@@ -114,30 +122,31 @@ export class TeleService {
   }
 
   async conichiwa(userId: number) {
-    const user = await this.cache.getUser(userId);
-    const account = user.accounts.at(0);
-    if (!account) return;
-
-    const tokenA = WETH;
-    const tokenB = UNI;
-    const amount = 0.01;
+    const account = await this.getAccount(userId);
+    if (!account)
+      return {
+        text: "Account not found",
+      };
 
     const ids = await this.uniswap.getPositionIds(account.address);
     const positionsInfo = await Promise.all(
       ids.map((id) => this.uniswap.getPositionInfo(id)),
     );
 
-    positionsInfo
-      .map((id, index) => [id, positionsInfo[index]])
-      .map((info) => {
-        const id = info[0];
-        const posInfo = info[1] as PositionInfo;
-        return `${id}: ${posInfo.liquidity.toString()} liquidity, owed ${posInfo.tokensOwed0.toString()} and ${posInfo.tokensOwed1.toString()}`;
+    console.log(positionsInfo);
+
+    const text = positionsInfo
+      .map(({ tickLower, tickUpper, liquidity }) => {
+        return `ticks: ${tickLower}/${tickUpper}\nliquidity ${toReadableAmount(
+          liquidity,
+        )}`;
       })
-      .join("\n");
+      .join("\n\n");
 
     return {
-      text: `List your pools \n ${positionsInfo}`,
+      text: `List your pools \n\n${
+        positionsInfo.length > 0 ? text : "You have no pools"
+      }`,
       buttons: {
         reply_markup: {
           inline_keyboard: [[{ text: "Init pool", callback_data: INIT_POOL }]],
@@ -145,6 +154,7 @@ export class TeleService {
       },
     };
   }
+
   async initPool(userId: number) {
     const user = await this.cache.getUser(userId);
     const account = user.accounts.at(0);
@@ -155,13 +165,14 @@ export class TeleService {
     const amountA = 0.01;
     const amountB = 0.01;
 
-    this.uniswap.mintPosition({
-      account,
-      tokenA,
-      tokenB,
-      amountA,
-      amountB,
-    });
+    this.uniswap.quote({ tokenA, tokenB, amount: amountA, account });
+    // this.uniswap.mintPosition({
+    //   account,
+    //   tokenA,
+    //   tokenB,
+    //   amountA,
+    //   amountB,
+    // });
   }
 
   async commandStart(user: User) {
@@ -172,6 +183,7 @@ export class TeleService {
     const defalt = {
       name: `${first_name} ${last_name}`,
       accounts: [],
+      mainAccount: null,
       slippage: 10,
       maxGas: 10,
     };
@@ -263,9 +275,12 @@ export class TeleService {
 
   async deleteWallet(userId: number, address: string) {
     const user = await this.cache.getUser(userId);
-    console.log(user);
-
     const accounts = user.accounts.filter((acc) => acc.address !== address);
+
+    if (user.mainAccount?.address === address) {
+      user.mainAccount = accounts.at(0) ?? null;
+    }
+
     await this.cache.setUser(userId, { ...user, accounts });
     return "Delete successfully";
   }
@@ -412,17 +427,47 @@ export class TeleService {
     return result;
   }
 
-  async getDetails(wallet: string) {
-    const [balance, block] = await Promise.all([
+  async getDetails({ wallet, userId }: { wallet: string; userId: number }) {
+    const [balance, block, user] = await Promise.all([
       this.provider.getBalance(wallet),
       this.getBlock(),
+      this.cache.getUser(userId),
     ]);
 
-    return walletDetail({
-      block: block.block?.number ?? 0,
-      ethPrice: block.ethPrice,
-      balance: bigintToNumber(balance),
+    const acc = user.accounts.find((a) => a.address === wallet);
+    if (!acc) return { text: "Not found account" };
+
+    this.cache.setUser(userId, {
+      ...user,
+      mainAccount: acc,
     });
+
+    return {
+      text: walletDetail({
+        block: block.block?.number ?? 0,
+        ethPrice: block.ethPrice,
+        balance: bigintToNumber(balance),
+      }),
+      buttons: {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: "Buy Token", callback_data: BUY_TOKEN },
+              { text: "Sell Token", callback_data: SELL_TOKEN },
+            ],
+            [
+              { text: "Buy Limit", callback_data: BUY_LIMIT },
+              { text: "Sell Limit", callback_data: SELL_LIMIT },
+            ],
+            [
+              { text: "Token Balance", callback_data: "Token Balance" },
+              { text: "Wallet Analysis", callback_data: "Wallet Analysis" },
+              { text: "Flex Pnl", callback_data: "Flex Pnl" },
+            ],
+          ],
+        },
+      },
+    };
   }
 
   async getBalance(accList: Account[]) {
@@ -442,5 +487,21 @@ export class TeleService {
       this.etherscan.getEtherPrice(),
     ]);
     return { block, ethPrice };
+  }
+
+  async getAccount(userId: number) {
+    const user = await this.cache.getUser(userId);
+    const acc = user.mainAccount;
+    const firstAcc = user.accounts.at(0);
+
+    if (!firstAcc) return null;
+    if (acc) return acc;
+
+    this.cache.setUser(userId, {
+      ...user,
+      mainAccount: firstAcc,
+    });
+
+    return firstAcc;
   }
 }

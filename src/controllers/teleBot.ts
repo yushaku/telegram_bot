@@ -11,13 +11,12 @@ import {
   INIT_POOL,
 } from "../utils/constants";
 import {
-  DETAIL_WALLET_BUTTONS,
   START_BUTTONS,
   TOKENS_BUTTONS,
   WALLET_BUTTONS,
 } from "../utils/replyButton";
 import { TeleService } from "../servises/tele.service";
-import { isAddress } from "../utils/utils";
+import { isAddress, shortenAddress } from "../utils/utils";
 import { isTransaction } from "../utils/types";
 import { UniswapService } from "../servises/uniswap.service";
 
@@ -44,6 +43,10 @@ export class TeleBot {
         description: "use route to swap weth -> uni",
       },
       {
+        command: "/pool",
+        description: "create pools",
+      },
+      {
         command: "/sniper",
         description: "Summons the Tigon bot main panel",
       },
@@ -67,16 +70,32 @@ export class TeleBot {
       this.bot.sendMessage(msg.chat.id, START_MESSAGE, START_BUTTONS);
     });
 
+    this.bot.onText(/\/pool/, async (msg) => {
+      if (!msg.from) return;
+      const sent = await this.bot.sendMessage(
+        msg.chat.id,
+        "Fetching your pools",
+      );
+
+      const { text, buttons } = await this.teleService.conichiwa(msg.from.id);
+      this.bot.editMessageText(text, {
+        message_id: sent.message_id,
+        chat_id: sent.chat.id,
+        ...buttons,
+      });
+    });
+
     this.bot.onText(/\/trade/, async (msg) => {
       if (!msg.from) return;
       const sent = await this.bot.sendMessage(
         msg.chat.id,
-        "Swap from weth to uni",
+        "Swap from WETH to UNI",
       );
       const text = await this.teleService.hi(msg.from.id);
       this.bot.editMessageText(text ?? "hello", {
         message_id: sent.message_id,
         chat_id: sent.chat.id,
+        parse_mode: "Markdown",
       });
     });
 
@@ -90,6 +109,7 @@ export class TeleBot {
       this.bot.editMessageText(text ?? "hello", {
         message_id: sent.message_id,
         chat_id: sent.chat.id,
+        parse_mode: "Markdown",
       });
     });
 
@@ -108,11 +128,15 @@ export class TeleBot {
       );
     });
 
-    this.bot.onText(/\/tokens/, (msg) => {
+    this.bot.onText(/\/tokens/, async (msg) => {
       if (!msg.from) return;
+      const acc = await this.teleService.getAccount(msg.from.id);
       this.bot.sendMessage(
         msg.chat.id,
-        "💰 Introducing our fast buy menu\n Purchase tokens with a single click.\n Our system uses w1 only and private transactions to safeguard against MEV attacks",
+        `💰 Introducing our fast buy menu\nPurchase tokens with a single click.\nOur system uses w1 only and private transactions \nto safeguard against MEV attacks \n\n📈 Trading on account: \`${shortenAddress(
+          acc?.address,
+          6,
+        )}\``,
         TOKENS_BUTTONS,
       );
     });
@@ -174,11 +198,15 @@ export class TeleBot {
         switch (type) {
           case "detail_wallet": {
             const sent = await this.bot.sendMessage(chatId, "processing...");
-            const text = await this.teleService.getDetails(address);
+            const { text, buttons } = await this.teleService.getDetails({
+              wallet: address,
+              userId: userId,
+            });
+
             this.bot.editMessageText(text, {
               chat_id: sent.chat.id,
               message_id: sent.message_id,
-              ...DETAIL_WALLET_BUTTONS,
+              ...buttons,
             });
             break;
           }

@@ -7,8 +7,6 @@ import {
   toReadableAmount,
 } from "../utils/utils";
 import {
-  MAX_FEE_PER_GAS,
-  MAX_PRIORITY_FEE_PER_GAS,
   NONFUNGIBLE_POSITION_MANAGER_ABI,
   NONFUNGIBLE_POSITION_MANAGER_CONTRACT_ADDRESS,
   QUOTER_CONTRACT_ADDRESS,
@@ -16,7 +14,6 @@ import {
   V2_SWAP_ROUTER_ADDRESS,
   chainId,
 } from "../utils/token";
-import { TransactionState, getProvider } from "../utils/provider";
 import {
   Currency,
   CurrencyAmount,
@@ -28,11 +25,15 @@ import {
   SwapRoute,
   AlphaRouter,
   SwapOptionsSwapRouter02,
-  SwapOptionsUniversalRouter,
   SwapType,
   SwapOptions,
 } from "@uniswap/smart-order-router";
-import { Account, PositionInfo, TokenTrade } from "../utils/types";
+import {
+  Account,
+  PositionInfo,
+  TokenTrade,
+  TransactionState,
+} from "../utils/types";
 import {
   Pool,
   Route,
@@ -45,8 +46,10 @@ import {
   nearestUsableTick,
   FeeAmount,
 } from "@uniswap/v3-sdk";
-import { getPoolInfoV3 } from "../utils/pools";
 import { TransactionRequest } from "@ethersproject/providers";
+import { getPoolInfoV3 } from "lib/pools";
+import { getProvider } from "lib/provider";
+import { getQuote } from "lib/quote/index";
 
 export class UniswapService {
   private provider: ethers.providers.JsonRpcProvider;
@@ -294,7 +297,7 @@ export class UniswapService {
     const options: SwapOptions = {
       type: SwapType.SWAP_ROUTER_02,
       slippageTolerance: new Percent(50, 10_000), // 50 bips, or 0.50%
-      deadline: Math.floor(Date.now() / 1000) + 60 * 20, // 20 minutes from the current Unix time
+      deadline: Math.floor(Date.now() / 1000) + 60 * 20, // 20 minutes
       recipient: account.address,
     };
 
@@ -338,12 +341,19 @@ export class UniswapService {
     return ethers.utils.defaultAbiCoder.decode(["uint256"], data);
   }
 
-  async createPosition() {
-    // get calldata for minting a position
-    // const { calldata, value } = NonfungiblePositionManager.addCallParameters(
-    //   positionToMint,
-    //   mintOptions,
-    // );
+  async quote({
+    tokenA,
+    tokenB,
+    amount,
+    account,
+  }: {
+    tokenA: Token;
+    tokenB: Token;
+    amount: number;
+    account: Account;
+  }) {
+    const result = await getQuote({ tokenA, tokenB, amount, account });
+    console.log(result);
   }
 
   async getPositionIds(address: string) {
@@ -447,6 +457,7 @@ export class UniswapService {
         account,
       }),
     ]);
+
     if (
       tokenInApproval === TransactionState.Failed ||
       tokenOutApproval === TransactionState.Failed
@@ -466,6 +477,8 @@ export class UniswapService {
       ),
     );
 
+    console.log("position", positionToMint);
+
     const mintOptions: MintOptions = {
       recipient: account.address,
       deadline: Math.floor(Date.now() / 1000) + 60 * 20,
@@ -484,8 +497,6 @@ export class UniswapService {
       to: NONFUNGIBLE_POSITION_MANAGER_CONTRACT_ADDRESS,
       data: calldata,
       value: value,
-      maxFeePerGas: MAX_FEE_PER_GAS,
-      maxPriorityFeePerGas: MAX_PRIORITY_FEE_PER_GAS,
     };
 
     console.log("transaction", transaction);

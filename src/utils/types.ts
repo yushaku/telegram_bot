@@ -5,13 +5,16 @@ import { BigNumber } from "ethers";
 
 export interface Account {
   privateKey: string;
-  mnemonic: string;
+  mnemonic: string | null | undefined;
   address: string;
 }
 
 export type UserEntity = {
   name: string;
   accounts: Account[];
+  mainAccount: Account | null;
+  slippage: number;
+  maxGas: number;
 };
 
 export function isTransaction(
@@ -29,4 +32,12 @@ export interface PositionInfo {
   feeGrowthInside1LastX128: BigNumber;
   tokensOwed0: BigNumber;
   tokensOwed1: BigNumber;
+}
+
+export enum TransactionState {
+  Failed = "Failed",
+  New = "New",
+  Rejected = "Rejected",
+  Sending = "Sending",
+  Sent = "Sent",
 }

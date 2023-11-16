@@ -80,29 +80,10 @@ export const WALLET_BUTTONS: TelegramBot.SendMessageOptions = {
   },
 };
 
-export const DETAIL_WALLET_BUTTONS = {
-  reply_markup: {
-    inline_keyboard: [
-      [
-        { text: "Buy Token", callback_data: BUY_TOKEN },
-        { text: "Sell Token", callback_data: SELL_TOKEN },
-      ],
-      [
-        { text: "Buy Limit", callback_data: BUY_LIMIT },
-        { text: "Sell Limit", callback_data: SELL_LIMIT },
-      ],
-      [
-        { text: "Token Balance", callback_data: "Token Balance" },
-        { text: "Wallet Analysis", callback_data: "Wallet Analysis" },
-        { text: "Flex Pnl", callback_data: "Flex Pnl" },
-      ],
-    ],
-  },
-};
-
-export const TOKENS_BUTTONS =
+export const TOKENS_BUTTONS: TelegramBot.SendMessageOptions =
   chainId === ChainId.MAINNET
     ? {
+        parse_mode: "Markdown",
         reply_markup: {
           inline_keyboard: [
             [
@@ -163,6 +144,7 @@ export const TOKENS_BUTTONS =
         },
       }
     : {
+        parse_mode: "Markdown",
         reply_markup: {
           inline_keyboard: [
             [

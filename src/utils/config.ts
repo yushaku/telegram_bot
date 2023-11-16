@@ -1,8 +1,4 @@
-import { Token } from "@uniswap/sdk-core";
-import { UNI, WETH } from "./token";
-
 export type Environment = "TESTNET" | "MAINNET" | "ZKSYNC";
-
 export const CurrentConfig = {
   rpc: {
     testnet:
@@ -15,11 +11,5 @@ export const CurrentConfig = {
     address: "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
     privateKey:
       "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
-  },
-  tokens: {
-    in: WETH,
-    amountIn: 1,
-    out: UNI,
-    poolFee: 0,
   },
 };

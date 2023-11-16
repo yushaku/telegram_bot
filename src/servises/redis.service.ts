@@ -11,7 +11,7 @@ export class RedisService {
     });
   }
 
-  async setUser(id: number, value: string | Record<string, any>) {
+  async setUser(id: number, value: UserEntity) {
     this.cache.set(id.toString(), JSON.stringify(value));
   }
 
