@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { Protocol } from "@uniswap/router-sdk";
+import { chainId } from "./token";
 
 const envSchema = z.object({
   NODE_ENV: z.enum(["TESTNET", "MAINNET", "ZKSYNC"]).default("TESTNET"),
@@ -7,7 +8,20 @@ const envSchema = z.object({
   SERVER_URL: z.string(),
   INFURA_KEY: z.string().nonempty(),
   ETHERSCAN_ID: z.string().nonempty(),
+  ONE_INCH_KEY: z.string().nonempty(),
 });
+
+export const {
+  NODE_ENV,
+  TELE_BOT_ID,
+  SERVER_URL,
+  INFURA_KEY,
+  ETHERSCAN_ID,
+  ONE_INCH_KEY,
+} = envSchema.parse(process.env);
+
+export const BROADCAST_API_URL = `https://api.1inch.dev/tx-gateway/v1.1/${chainId}/broadcast`;
+export const API_BASE_URL = `https://api.1inch.dev/swap/v5.2/${chainId}`;
 
 export const CLIENT_PARAMS = {
   protocols: [Protocol.V2, Protocol.V3, Protocol.MIXED],
@@ -15,9 +29,6 @@ export const CLIENT_PARAMS = {
 
 export const BIPS_BASE = 10_000;
 export const protocols: Protocol[] = [Protocol.V2, Protocol.V3, Protocol.MIXED];
-
-export const { NODE_ENV, TELE_BOT_ID, SERVER_URL, INFURA_KEY, ETHERSCAN_ID } =
-  envSchema.parse(process.env);
 
 export const TELEGRAM_API = `https://api.telegram.org/bot${TELE_BOT_ID}`;
 export const URI = `webhook/${TELE_BOT_ID}`;

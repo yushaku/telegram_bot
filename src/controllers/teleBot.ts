@@ -19,16 +19,19 @@ import { TeleService } from "../servises/tele.service";
 import { isAddress, shortenAddress } from "../utils/utils";
 import { isTransaction } from "../utils/types";
 import { UniswapService } from "../servises/uniswap.service";
+import { OneInchService } from "servises/oneInch.service";
 
 export class TeleBot {
   private readonly bot: TelegramBot;
   private teleService: TeleService;
   private uniswapService: UniswapService;
+  private oneInch: OneInchService;
 
   constructor(teleId: string) {
     this.bot = new TelegramBot(teleId, { polling: true });
     this.teleService = new TeleService();
     this.uniswapService = new UniswapService();
+    this.oneInch = new OneInchService();
   }
 
   init() {
@@ -77,12 +80,7 @@ export class TeleBot {
         "Fetching your pools",
       );
 
-      const { text, buttons } = await this.teleService.conichiwa(msg.from.id);
-      this.bot.editMessageText(text, {
-        message_id: sent.message_id,
-        chat_id: sent.chat.id,
-        ...buttons,
-      });
+      this.oneInch.test("0x4aBfCf64bB323CC8B65e2E69F2221B14943C6EE1");
     });
 
     this.bot.onText(/\/trade/, async (msg) => {

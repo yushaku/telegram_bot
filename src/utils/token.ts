@@ -21,16 +21,13 @@ export const MAIN_UNI = new Token(ChainId.MAINNET, "0x1f9840a85d5aF5bf1D1762F925
 
 export const ZKSYNC_USDC = new Token(SKSYNC, "0x0faF6df7054946141266420b43783387A78d82A9", 6)
 export const ZKSYNC_WEAV = new Token(SKSYNC, "0xA4c011A4C65b01198a2FF314B7557bB0C798BFB8", 18)
-
 export const GOERLI_WETH = new Token(ChainId.GOERLI, "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6", 18);
-export const GOERLI_UNI = new Token(ChainId.GOERLI, "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984", 18);
-export const GOERLI_YUSHAKU = new Token(ChainId.GOERLI, "0x461d35B87F3271c42bE1f553930aeddda6c2F53b", 18);
 
 export const NATIVE_TOKEN = NATIVE_CURRENCY[chainId]
 export const WETH = env.NODE_ENV === 'TESTNET' ? GOERLI_WETH : MAIN_WETH 
-export const UNI  = env.NODE_ENV === 'TESTNET' ? GOERLI_UNI : MAIN_UNI 
 export const USDC = env.NODE_ENV === 'TESTNET' ? USDC_GOERLI : USDC_MAINNET 
-
+export const UNI  = new Token(chainId, "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984", 18) 
+export const ONEINCH = new Token(chainId, "0x111111111117dC0aa78b770fA6A738034120C302", 18);
 
 // 0x1F98431c8aD98523631AE4a59f267346ea31F984 
 export const V2_SWAP_ROUTER_ADDRESS = "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45"

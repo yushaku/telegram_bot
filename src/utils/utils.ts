@@ -11,6 +11,10 @@ export function fromReadableAmount(
   return ethers.utils.parseUnits(amount.toString(), decimals);
 }
 
+export function calculateGasMargin(value: BigNumber): BigNumber {
+  return value.mul(120).div(100);
+}
+
 export function fromReadableToAmount(amount: number, decimals: number): JSBI {
   const extraDigits = Math.pow(10, countDecimals(amount));
   const adjustedAmount = amount * extraDigits;
