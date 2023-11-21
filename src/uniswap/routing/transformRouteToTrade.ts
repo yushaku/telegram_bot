@@ -17,31 +17,31 @@ import { Pair, Route as V2Route } from "@uniswap/v2-sdk";
 import { FeeAmount, Pool, Route as V3Route } from "@uniswap/v3-sdk";
 import {
   ClassicQuoteData,
-  ClassicTrade,
-  GetQuickQuoteArgs,
-  GetQuoteArgs,
-  InterfaceTrade,
+  V2PoolInRoute,
   PoolType,
-  PreviewTrade,
-  QuickRouteResponse,
-  QuoteMethod,
-  QuoteState,
-  RouterPreference,
-  SubmittableTrade,
-  SwapFeeInfo,
+  V3PoolInRoute,
+  GetQuoteArgs,
+  GetQuickQuoteArgs,
   SwapRouterNativeAssets,
-  TradeFillType,
-  TradeResult,
   URADutchOrderQuoteData,
+  SwapFeeInfo,
   URAQuoteResponse,
   URAQuoteType,
-  V2PoolInRoute,
-  V3PoolInRoute,
   isClassicQuoteResponse,
-} from "lib/routing/types";
-import { isBsc, isPolygon } from "./chain";
-import { BIPS_BASE } from "./constants";
-import { getApproveInfo, getWrapInfo } from "lib/routing/gas";
+  QuickRouteResponse,
+  PreviewTrade,
+  QuoteMethod,
+  TradeResult,
+  RouterPreference,
+  ClassicTrade,
+  QuoteState,
+  InterfaceTrade,
+  TradeFillType,
+  SubmittableTrade,
+} from "uniswap/types";
+import { isPolygon, isBsc } from "utils/chain";
+import { BIPS_BASE } from "utils/constants";
+import { getApproveInfo, getWrapInfo } from "./gas";
 interface RouteResult {
   routev3: V3Route<Currency, Currency> | null;
   routev2: V2Route<Currency, Currency> | null;

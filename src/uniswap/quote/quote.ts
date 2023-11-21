@@ -11,15 +11,15 @@ import {
   nativeOnChain,
 } from "@uniswap/smart-order-router";
 import JSBI from "jsbi";
-import { asSupportedChain } from "utils/chain";
+import { transformSwapRouteToGetQuoteResult } from "uniswap/routing/transformSwapRouteToGetQuoteResult";
 import {
   QuoteResult,
   SwapRouterNativeAssets,
   QuoteState,
   GetQuoteArgs,
-} from "./routing/types";
-import { DEPRECATED_RPC_PROVIDERS } from "./provider";
-import { transformSwapRouteToGetQuoteResult } from "utils/transformSwapRouteToGetQuoteResult";
+} from "uniswap/types";
+import { asSupportedChain } from "utils/chain";
+import { getProvider } from "utils/networks";
 
 const routers = new Map<ChainId, AlphaRouter>();
 
@@ -29,7 +29,7 @@ export function getRouter(chainId: ChainId): AlphaRouter {
 
   const supportedChainId = asSupportedChain(chainId);
   if (supportedChainId) {
-    const provider = DEPRECATED_RPC_PROVIDERS[supportedChainId];
+    const provider = getProvider();
     const router = new AlphaRouter({ chainId, provider });
     routers.set(chainId, router);
     return router;

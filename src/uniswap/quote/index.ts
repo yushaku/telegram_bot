@@ -3,13 +3,13 @@ import { FeeAmount, computePoolAddress } from "@uniswap/v3-sdk";
 import IUniswapV3PoolABI from "@uniswap/v3-core/artifacts/contracts/interfaces/IUniswapV3Pool.sol/IUniswapV3Pool.json";
 import Quoter from "@uniswap/v3-periphery/artifacts/contracts/lens/Quoter.sol/Quoter.json";
 import { Wallet, ethers } from "ethers";
-import { getProvider } from "lib/provider";
-import {
-  POOL_FACTORY_CONTRACT_ADDRESS,
-  QUOTER_CONTRACT_ADDRESS,
-} from "utils/token";
 import { fromReadableAmount, toReadableAmount } from "utils/utils";
 import { Account } from "utils/types";
+import {
+  QUOTER_CONTRACT_ADDRESS,
+  POOL_FACTORY_CONTRACT_ADDRESS,
+} from "utils/constants";
+import { getProvider } from "utils/networks";
 
 export async function getQuote({
   tokenA,

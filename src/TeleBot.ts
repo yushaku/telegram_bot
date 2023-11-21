@@ -1,25 +1,26 @@
+import { TeleService } from "TeleService";
+import { isAddress } from "ethers/lib/utils";
 import TelegramBot from "node-telegram-bot-api";
-import { START_MESSAGE } from "../utils/replyMessage";
-import {
-  IMPORT_WALLET,
-  FEATURES_WALLET,
-  CREATE_WALLET,
-  LIST_WALLET,
-  SET_SPLIPAGE,
-  SET_MAX_GAS,
-  CLOSE,
-  INIT_POOL,
-} from "../utils/constants";
+import { OneInchService } from "oneInch";
+import { UniswapService } from "uniswap";
 import {
   START_BUTTONS,
   TOKENS_BUTTONS,
   WALLET_BUTTONS,
-} from "../utils/replyButton";
-import { TeleService } from "../servises/tele.service";
-import { isAddress, shortenAddress } from "../utils/utils";
-import { isTransaction } from "../utils/types";
-import { UniswapService } from "../servises/uniswap.service";
-import { OneInchService } from "servises/oneInch.service";
+} from "utils/replyButton";
+import { START_MESSAGE } from "utils/replyMessage";
+import {
+  IMPORT_WALLET,
+  CREATE_WALLET,
+  LIST_WALLET,
+  FEATURES_WALLET,
+  INIT_POOL,
+  SET_MAX_GAS,
+  SET_SPLIPAGE,
+  CLOSE,
+} from "utils/replyTopic";
+import { isTransaction } from "utils/types";
+import { shortenAddress } from "utils/utils";
 
 export class TeleBot {
   private readonly bot: TelegramBot;
@@ -77,10 +78,18 @@ export class TeleBot {
       if (!msg.from) return;
       const sent = await this.bot.sendMessage(
         msg.chat.id,
-        "Fetching your pools",
+        "Fetching your quote",
       );
 
-      this.oneInch.test("0x4aBfCf64bB323CC8B65e2E69F2221B14943C6EE1");
+      const { text, buttons } = await this.oneInch.quote();
+      console.log(text);
+
+      await this.bot.editMessageText(text, {
+        message_id: sent.message_id,
+        chat_id: sent.chat.id,
+        parse_mode: "Markdown",
+        ...buttons,
+      });
     });
 
     this.bot.onText(/\/trade/, async (msg) => {
@@ -318,6 +327,12 @@ export class TeleBot {
         case FEATURES_WALLET: {
           const text = await this.teleService.commandWallet(userId);
           return this.bot.sendMessage(chatId, text, WALLET_BUTTONS);
+        }
+
+        case "swap_now": {
+          const sent = await this.bot.sendMessage(chatId, "Swapping...");
+          this.oneInch.swap();
+          break;
         }
 
         case INIT_POOL: {

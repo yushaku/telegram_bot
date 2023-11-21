@@ -3,13 +3,13 @@ import { Currency, CurrencyAmount, TradeType } from "@uniswap/sdk-core";
 import { routeAmountsToString, SwapRoute } from "@uniswap/smart-order-router";
 import { Pool } from "@uniswap/v3-sdk";
 import {
-  ClassicQuoteData,
   QuoteResult,
+  V3PoolInRoute,
+  V2PoolInRoute,
+  ClassicQuoteData,
   QuoteState,
   URAQuoteType,
-  V2PoolInRoute,
-  V3PoolInRoute,
-} from "lib/routing/types";
+} from "uniswap/types";
 
 export function transformSwapRouteToGetQuoteResult(
   tradeType: TradeType,

@@ -1,4 +1,5 @@
 import { CurrencyAmount, Token } from "@uniswap/sdk-core";
+import uniswapV2poolABI from "abis/uniV2pool.json";
 import { Pair, Route as RouteV2 } from "@uniswap/v2-sdk";
 import IUniswapV3PoolABI from "@uniswap/v3-core/artifacts/contracts/interfaces/IUniswapV3Pool.sol/IUniswapV3Pool.json";
 import {
@@ -7,8 +8,7 @@ import {
   computePoolAddress,
 } from "@uniswap/v3-sdk";
 import { ethers } from "ethers";
-import uniswapV2poolABI from "../abis/uniV2pool.json";
-import { getProvider } from "./provider";
+import { getProvider } from "utils/networks";
 
 interface PoolInfo {
   token0: string;

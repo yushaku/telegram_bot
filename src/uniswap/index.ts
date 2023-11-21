@@ -7,14 +7,6 @@ import {
   toReadableAmount,
 } from "../utils/utils";
 import {
-  NONFUNGIBLE_POSITION_MANAGER_ABI,
-  NONFUNGIBLE_POSITION_MANAGER_CONTRACT_ADDRESS,
-  QUOTER_CONTRACT_ADDRESS,
-  SWAP_ROUTER_ADDRESS,
-  V2_SWAP_ROUTER_ADDRESS,
-  chainId,
-} from "../utils/token";
-import {
   Currency,
   CurrencyAmount,
   Percent,
@@ -29,12 +21,6 @@ import {
   SwapOptions,
 } from "@uniswap/smart-order-router";
 import {
-  Account,
-  PositionInfo,
-  TokenTrade,
-  TransactionState,
-} from "../utils/types";
-import {
   Pool,
   Route,
   Trade,
@@ -47,9 +33,19 @@ import {
   FeeAmount,
 } from "@uniswap/v3-sdk";
 import { TransactionRequest } from "@ethersproject/providers";
-import { getPoolInfoV3 } from "lib/pools";
-import { getProvider } from "lib/provider";
-import { getQuote } from "lib/quote/index";
+import { getQuote } from "./quote";
+import { getPoolInfoV3 } from "./pools";
+import { getProvider } from "utils/networks";
+import {
+  V2_SWAP_ROUTER_ADDRESS,
+  SWAP_ROUTER_ADDRESS,
+  QUOTER_CONTRACT_ADDRESS,
+  NONFUNGIBLE_POSITION_MANAGER_CONTRACT_ADDRESS,
+  NONFUNGIBLE_POSITION_MANAGER_ABI,
+} from "utils/constants";
+import { chainId } from "utils/token";
+import { Account } from "utils/types";
+import { TransactionState, TokenTrade, PositionInfo } from "./types";
 
 export class UniswapService {
   private provider: ethers.providers.JsonRpcProvider;
@@ -249,7 +245,7 @@ export class UniswapService {
     tokenB: Token;
     amount: number;
     poolFee?: number;
-  }): Promise<TokenTrade> {
+  }) {
     const poolInfo = await getPoolInfoV3(tokenA, tokenB);
     const pool = new Pool(
       tokenA,
@@ -291,7 +287,7 @@ export class UniswapService {
     trade,
     account,
   }: {
-    trade: TokenTrade;
+    trade: Trade<Currency, Currency, TradeType>;
     account: Account;
   }) {
     const options: SwapOptions = {

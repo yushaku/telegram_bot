@@ -1,21 +1,11 @@
 import TelegramBot, { User } from "node-telegram-bot-api";
 import { v4 as uuidv4 } from "uuid";
 import {
-  BUY_LIMIT,
-  BUY_TOKEN,
-  CLOSE,
-  ETHERSCAN_ID,
-  INFURA_KEY,
-  INIT_POOL,
-  SELL_LIMIT,
-  SELL_TOKEN,
-} from "../utils/constants";
-import {
   esstimateSwap,
   tokenDetail,
   walletDetail,
   walletMsg,
-} from "../utils/replyMessage";
+} from "utils/replyMessage";
 import {
   parseKey,
   createAccount,
@@ -23,13 +13,22 @@ import {
   shortenAddress,
   shortenAmount,
   toReadableAmount,
-} from "../utils/utils";
-import { Account, isTransaction } from "../utils/types";
-import { RedisService } from "./redis.service";
-import { UniswapService } from "./uniswap.service";
+} from "utils/utils";
+import { Account, isTransaction } from "utils/types";
 import { providers } from "ethers";
-import { UNI, WETH, chainId } from "../utils/token";
+import { UNI, WETH, chainId } from "utils/token";
 import { Token } from "@uniswap/sdk-core";
+import { UniswapService } from "uniswap";
+import { RedisService } from "lib/RedisService";
+import { INFURA_KEY, ETHERSCAN_ID } from "utils/constants";
+import {
+  INIT_POOL,
+  CLOSE,
+  BUY_TOKEN,
+  SELL_TOKEN,
+  BUY_LIMIT,
+  SELL_LIMIT,
+} from "utils/replyTopic";
 
 export class TeleService {
   private provider: providers.InfuraProvider;

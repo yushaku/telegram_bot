@@ -6,10 +6,9 @@
     "dev": "bun run --watch src/server.ts"
   },
   "dependencies": {
-    "@elysiajs/cors": "^0.7.1",
-    "@elysiajs/eden": "^0.7.4",
+    "@1inch/fusion-sdk": "^0.1.11",
+    "@1inch/limit-order-protocol-utils": "^4.0.21-alpha",
     "@ethersproject/providers": "^5.7.2",
-    "@types/node-telegram-bot-api": "^0.61.8",
     "@uniswap/permit2-sdk": "^1.2.0",
     "@uniswap/sdk-core": "^4.0.9",
     "@uniswap/smart-order-router": "^3.17.2",
@@ -21,18 +20,18 @@
     "@uniswap/v3-periphery": "^1.4.4",
     "@uniswap/v3-sdk": "^3.10.0",
     "axios": "^1.5.1",
-    "canvas": "latest",
-    "elysia": "latest",
     "ethers": "5",
     "ioredis": "^5.3.2",
     "node-telegram-bot-api": "^0.63.0",
     "request": "^2.88.2",
     "uuid": "^9.0.1",
+    "web3": "^4.2.2",
     "zksync-web3": "^0.16.0",
     "zod": "^3.22.4"
   },
   "devDependencies": {
     "@types/uuid": "^9.0.7",
+    "@types/node-telegram-bot-api": "^0.61.8",
     "bun-types": "latest"
   }
 }

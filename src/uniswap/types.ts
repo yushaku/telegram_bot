@@ -16,7 +16,26 @@ import {
 } from "@uniswap/uniswapx-sdk";
 import { Route as V2Route } from "@uniswap/v2-sdk";
 import { Route as V3Route } from "@uniswap/v3-sdk";
-import { ZERO_PERCENT } from "@uniswap/v2-sdk/dist/constants";
+import { BigNumber } from "ethers";
+
+export type TokenTrade = Trade<Token, Token, TradeType>;
+export interface PositionInfo {
+  tickLower: number;
+  tickUpper: number;
+  liquidity: BigNumber;
+  feeGrowthInside0LastX128: BigNumber;
+  feeGrowthInside1LastX128: BigNumber;
+  tokensOwed0: BigNumber;
+  tokensOwed1: BigNumber;
+}
+
+export enum TransactionState {
+  Failed = "Failed",
+  New = "New",
+  Rejected = "Rejected",
+  Sending = "Sending",
+  Sent = "Sent",
+}
 
 export enum TradeState {
   LOADING = "loading",
@@ -31,6 +50,64 @@ export enum QuoteMethod {
   QUICK_ROUTE = "QUICK_ROUTE",
   CLIENT_SIDE_FALLBACK = "CLIENT_SIDE_FALLBACK", // If client-side was used after the routing-api call failed.
 }
+
+export enum UniswapXOrderStatus {
+  FILLED = "filled",
+  OPEN = "open",
+  EXPIRED = "expired",
+  ERROR = "error",
+  CANCELLED = "cancelled",
+  INSUFFICIENT_FUNDS = "insufficient-funds",
+}
+
+interface BaseUniswapXBackendOrder {
+  orderStatus: UniswapXOrderStatus;
+  orderHash: string;
+  offerer: string;
+  createdAt: number;
+  chainId: number;
+  input: {
+    endAmount: string;
+    token: string;
+    startAmount: string;
+  };
+  outputs: [
+    {
+      recipient: string;
+      startAmount: string;
+      endAmount: string;
+      token: string;
+    },
+  ];
+}
+
+interface NonfilledUniswapXBackendOrder extends BaseUniswapXBackendOrder {
+  orderStatus:
+    | UniswapXOrderStatus.OPEN
+    | UniswapXOrderStatus.EXPIRED
+    | UniswapXOrderStatus.ERROR
+    | UniswapXOrderStatus.CANCELLED
+    | UniswapXOrderStatus.INSUFFICIENT_FUNDS;
+}
+
+interface FilledUniswapXBackendOrder extends BaseUniswapXBackendOrder {
+  orderStatus: UniswapXOrderStatus.FILLED;
+  txHash: string;
+  settledAmounts: [
+    {
+      tokenOut: string;
+      amountOut: string;
+    },
+  ];
+}
+
+export type UniswapXBackendOrder =
+  | FilledUniswapXBackendOrder
+  | NonfilledUniswapXBackendOrder;
+
+export type OrderQueryResponse = {
+  orders: UniswapXBackendOrder[];
+};
 
 // This is excluded from `RouterPreference` enum because it's only used
 // internally for token -> USDC trades to get a USD value.
@@ -226,8 +303,8 @@ export class ClassicTrade extends Trade<Currency, Currency, TradeType> {
   isUniswapXBetter: boolean | undefined;
   requestId: string | undefined;
   quoteMethod: QuoteMethod;
-  inputTax: Percent;
-  outputTax: Percent;
+  // inputTax: Percent;
+  // outputTax: Percent;
   swapFee: SwapFeeInfo | undefined;
 
   constructor({
@@ -276,8 +353,8 @@ export class ClassicTrade extends Trade<Currency, Currency, TradeType> {
     this.requestId = requestId;
     this.quoteMethod = quoteMethod;
     this.approveInfo = approveInfo;
-    this.inputTax = inputTax;
-    this.outputTax = outputTax;
+    // this.inputTax = inputTax;
+    // this.outputTax = outputTax;
     this.swapFee = swapFee;
   }
 
@@ -356,8 +433,8 @@ export class DutchOrderTrade extends IDutchOrderTrade<
   deadlineBufferSecs: number;
   slippageTolerance: Percent;
 
-  inputTax = ZERO_PERCENT;
-  outputTax = ZERO_PERCENT;
+  inputTax = new Percent(0, 100);
+  outputTax = new Percent(0, 100);
   swapFee: SwapFeeInfo | undefined;
 
   constructor({

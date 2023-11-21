@@ -1,20 +1,17 @@
 import TelegramBot from "node-telegram-bot-api";
 
+import { chainId } from "./token";
+import { ChainId } from "@uniswap/sdk-core";
 import {
-  IMPORT_WALLET,
   FEATURES_WALLET,
+  SET_SPLIPAGE,
+  SET_MAX_GAS,
+  IMPORT_WALLET,
   CREATE_WALLET,
   LIST_WALLET,
   BUY_LIMIT,
-  BUY_TOKEN,
-  SELL_LIMIT,
-  SELL_TOKEN,
-  SET_SPLIPAGE,
-  SET_MAX_GAS,
   CLOSE,
-} from "./constants";
-import { chainId } from "./token";
-import { ChainId } from "@uniswap/sdk-core";
+} from "./replyTopic";
 
 export const PREMIUM_BUTTONS = {
   reply_markup: {

@@ -2,13 +2,12 @@ import { MaxUint256, PERMIT2_ADDRESS } from "@uniswap/permit2-sdk";
 import { Currency } from "@uniswap/sdk-core";
 import { WRAPPED_NATIVE_CURRENCY } from "@uniswap/smart-order-router";
 import ERC20_ABI from "abis/erc20.json";
-import { getContract } from "lib/contract";
-import { DEPRECATED_RPC_PROVIDERS } from "lib/provider";
+import { ApproveInfo, WrapInfo } from "uniswap/types";
 import { SupportedInterfaceChain } from "utils/chain";
-import { WETH_ABI } from "utils/token";
-import { ApproveInfo, WrapInfo } from "./types";
+import { WETH_ABI } from "utils/constants";
+import { getContract } from "utils/contract";
+import { getProvider } from "utils/networks";
 
-// TODO(UniswapX): add fallback gas limits per chain? l2s have higher costs
 const WRAP_FALLBACK_GAS_LIMIT = 45_000;
 const APPROVE_FALLBACK_GAS_LIMIT = 65_000;
 
@@ -24,8 +23,7 @@ export async function getApproveInfo(
   // If any of these arguments aren't provided, then we cannot generate approval cost info
   if (!account || !usdCostPerGas) return { needsApprove: false };
 
-  const provider =
-    DEPRECATED_RPC_PROVIDERS[currency.chainId as SupportedInterfaceChain];
+  const provider = getProvider();
   const tokenContract = getContract(currency.address, ERC20_ABI, provider);
 
   let approveGasUseEstimate;
@@ -68,7 +66,7 @@ export async function getWrapInfo(
 ): Promise<WrapInfo> {
   if (!needsWrap) return { needsWrap: false };
 
-  const provider = DEPRECATED_RPC_PROVIDERS[chainId];
+  const provider = getProvider();
   const wethAddress = WRAPPED_NATIVE_CURRENCY[chainId]?.address;
 
   // If any of these arguments aren't provided, then we cannot generate wrap cost info
