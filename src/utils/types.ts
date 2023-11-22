@@ -2,7 +2,7 @@ import { TransactionResponse } from "@ethersproject/providers";
 
 export interface Account {
   privateKey: string;
-  mnemonic: string | null | undefined;
+  mnemonic?: string | null | undefined;
   address: string;
 }
 

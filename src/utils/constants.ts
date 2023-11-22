@@ -3,7 +3,6 @@ import { Protocol } from "@uniswap/router-sdk";
 import { chainId } from "./token";
 
 const envSchema = z.object({
-  NODE_ENV: z.enum(["TESTNET", "MAINNET", "ZKSYNC"]).default("TESTNET"),
   TELE_BOT_ID: z.string(),
   SERVER_URL: z.string(),
   INFURA_KEY: z.string().nonempty(),
@@ -12,7 +11,6 @@ const envSchema = z.object({
 });
 
 export const {
-  NODE_ENV = "TESTNET",
   TELE_BOT_ID,
   SERVER_URL,
   INFURA_KEY,

@@ -42,10 +42,12 @@ import {
   QUOTER_CONTRACT_ADDRESS,
   NONFUNGIBLE_POSITION_MANAGER_CONTRACT_ADDRESS,
   NONFUNGIBLE_POSITION_MANAGER_ABI,
+  MAX_FEE_PER_GAS,
+  MAX_PRIORITY_FEE_PER_GAS,
 } from "utils/constants";
 import { chainId } from "utils/token";
 import { Account } from "utils/types";
-import { TransactionState, TokenTrade, PositionInfo } from "./types";
+import { TransactionState, PositionInfo } from "./types";
 
 export class UniswapService {
   private provider: ethers.providers.JsonRpcProvider;
@@ -175,10 +177,12 @@ export class UniswapService {
         this.provider.getGasPrice(),
       ]);
 
-      const transaction = {
+      console.log(nonce, gasLimit, gasPrice);
+
+      const transaction: TransactionRequest = {
         ...tx,
-        nonce: nonce + 5,
-        gasLimit: gasLimit,
+        nonce,
+        gasLimit,
         gasPrice,
       };
 

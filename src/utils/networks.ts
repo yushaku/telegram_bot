@@ -1,7 +1,6 @@
 import { ChainId } from "@uniswap/sdk-core";
 import { INFURA_KEY } from "./constants";
-import { chainId } from "./token";
-import { ethers } from "ethers";
+import { NODE_ENV, chainId } from "./token";
 import { JsonRpcProvider } from "@ethersproject/providers";
 
 export const RPC_URLS = {
@@ -19,6 +18,10 @@ export const RPC_URLS = {
 };
 
 export function getProvider() {
+  if (NODE_ENV === "LOCAL") {
+    return new JsonRpcProvider({ url: "http://127.0.0.1:8545" });
+  }
+
   return new JsonRpcProvider(RPC_URLS[chainId]);
 }
 

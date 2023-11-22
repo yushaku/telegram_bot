@@ -2,7 +2,6 @@ import { TeleService } from "TeleService";
 import { isAddress } from "ethers/lib/utils";
 import TelegramBot from "node-telegram-bot-api";
 import { OneInchService } from "oneInch";
-import { UniswapService } from "uniswap";
 import {
   START_BUTTONS,
   TOKENS_BUTTONS,
@@ -25,13 +24,11 @@ import { shortenAddress } from "utils/utils";
 export class TeleBot {
   private readonly bot: TelegramBot;
   private teleService: TeleService;
-  private uniswapService: UniswapService;
   private oneInch: OneInchService;
 
   constructor(teleId: string) {
     this.bot = new TelegramBot(teleId, { polling: true });
     this.teleService = new TeleService();
-    this.uniswapService = new UniswapService();
     this.oneInch = new OneInchService();
   }
 
@@ -47,7 +44,7 @@ export class TeleBot {
         description: "use route to swap weth -> uni",
       },
       {
-        command: "/pool",
+        command: "/test",
         description: "create pools",
       },
       {
@@ -74,15 +71,11 @@ export class TeleBot {
       this.bot.sendMessage(msg.chat.id, START_MESSAGE, START_BUTTONS);
     });
 
-    this.bot.onText(/\/pool/, async (msg) => {
+    this.bot.onText(/\/test/, async (msg) => {
       if (!msg.from) return;
-      const sent = await this.bot.sendMessage(
-        msg.chat.id,
-        "Fetching your quote",
-      );
+      const sent = await this.bot.sendMessage(msg.chat.id, "Processing...");
 
-      const { text, buttons } = await this.oneInch.quote();
-      console.log(text);
+      const { text, buttons } = await this.oneInch.test();
 
       await this.bot.editMessageText(text, {
         message_id: sent.message_id,
@@ -118,21 +111,6 @@ export class TeleBot {
         chat_id: sent.chat.id,
         parse_mode: "Markdown",
       });
-    });
-
-    this.bot.onText(/\/get (.+)/, async (msg, match) => {
-      const resp = match?.at(1);
-      if (!msg.from || !resp) return;
-      const a = await this.uniswapService.checkhash(resp);
-      console.log(a);
-
-      // const data = await this.teleService.conichiwa(msg.from.id);
-      // if (!data) return;
-      // const { text, buttons } = data;
-      const sent = await this.bot.sendMessage(
-        msg.chat.id,
-        `check ${a?.status}`,
-      );
     });
 
     this.bot.onText(/\/tokens/, async (msg) => {

@@ -171,3 +171,4 @@ dist
 
 # IntelliJ based IDEs
 .idea
+init.sh

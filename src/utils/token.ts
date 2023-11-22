@@ -6,16 +6,17 @@ import { NATIVE_CURRENCY, USDC_GOERLI, USDC_MAINNET } from "@uniswap/smart-order
 import { z } from "zod";
 
 const envSchema = z.object({
-  NODE_ENV: z.enum(["TESTNET", "MAINNET", "ZKSYNC"]).default("TESTNET"),
+  NODE_ENV: z.enum(["MAINNET", "ZKSYNC", 'LOCAL', 'GOERLI']).default("LOCAL"),
 });
 
 export const {
-  NODE_ENV = "TESTNET",
+  NODE_ENV ,
 } = envSchema.parse(process.env);
 
 
 export const SKSYNC = 280
-export const chainId = NODE_ENV === 'TESTNET' ? ChainId.GOERLI : ChainId.MAINNET 
+// export const chainId = NODE_ENV === 'TESTNET' ? ChainId.GOERLI : ChainId.MAINNET 
+export const chainId =  ChainId.MAINNET 
 
 export const MATIC_POLYGON = new Token(ChainId.POLYGON, '0x0000000000000000000000000000000000001010', 18, 'MATIC')
 export const MATIC_MUMBAI = new Token(ChainId.POLYGON_MUMBAI, '0x0000000000000000000000000000000000001010', 18, 'MATIC')
@@ -32,8 +33,8 @@ export const ZKSYNC_WEAV = new Token(SKSYNC, "0xA4c011A4C65b01198a2FF314B7557bB0
 export const GOERLI_WETH = new Token(ChainId.GOERLI, "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6", 18);
 
 export const NATIVE_TOKEN = NATIVE_CURRENCY[chainId]
-export const WETH = NODE_ENV === 'TESTNET' ? GOERLI_WETH : MAIN_WETH 
-export const USDC = NODE_ENV === 'TESTNET' ? USDC_GOERLI : USDC_MAINNET 
+export const WETH = NODE_ENV === 'GOERLI' ? GOERLI_WETH : MAIN_WETH 
+export const USDC = NODE_ENV === 'GOERLI' ? USDC_GOERLI : USDC_MAINNET 
 export const UNI  = new Token(chainId, "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984", 18) 
 export const ONEINCH = new Token(chainId, "0x111111111117dC0aa78b770fA6A738034120C302", 18);
 

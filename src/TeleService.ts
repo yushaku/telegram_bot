@@ -15,12 +15,10 @@ import {
   toReadableAmount,
 } from "utils/utils";
 import { Account, isTransaction } from "utils/types";
-import { providers } from "ethers";
 import { UNI, WETH, chainId } from "utils/token";
 import { Token } from "@uniswap/sdk-core";
 import { UniswapService } from "uniswap";
 import { RedisService } from "lib/RedisService";
-import { INFURA_KEY, ETHERSCAN_ID } from "utils/constants";
 import {
   INIT_POOL,
   CLOSE,
@@ -29,16 +27,16 @@ import {
   BUY_LIMIT,
   SELL_LIMIT,
 } from "utils/replyTopic";
+import { getProvider } from "utils/networks";
+import { JsonRpcProvider } from "@ethersproject/providers";
 
 export class TeleService {
-  private provider: providers.InfuraProvider;
-  private etherscan: providers.EtherscanProvider;
+  private provider: JsonRpcProvider;
   private cache: RedisService;
   private uniswap: UniswapService;
 
   constructor() {
-    this.provider = new providers.InfuraProvider(1, INFURA_KEY);
-    this.etherscan = new providers.EtherscanProvider(1, ETHERSCAN_ID);
+    this.provider = getProvider();
     this.uniswap = new UniswapService();
     this.cache = new RedisService();
   }
@@ -482,8 +480,8 @@ export class TeleService {
 
   async getBlock() {
     const [block, ethPrice] = await Promise.all([
-      this.etherscan.getBlock("latest"),
-      this.etherscan.getEtherPrice(),
+      this.provider.getBlock("latest"),
+      this.provider.getEtherPrice(),
     ]);
     return { block, ethPrice };
   }

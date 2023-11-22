@@ -1,18 +1,9 @@
-# Elysia with Bun runtime
-
-## Getting Started
-
-To get started with this template, simply paste this command into your terminal:
-
-```bash
-bun create elysia ./elysia-example
-```
+# telegram bot - Bun runtime
 
 ## Development
 
-To start the development server run:
-
 ```bash
+# To start the development server run:
 bun run dev
 ```
 
@@ -23,12 +14,13 @@ Open http://localhost:3000/ with your browser to see the result.
 ```mermaid
 flowchart TB
 1(user) ----> 2(telegram)
-2 ---->3(bot)
+2 <--message-->3(bot server)
 
-subgraph telegram
-3 <----> 4(uniswap)
+subgraph backend
+3 <----> 4(uniswap) --> 4.1(universal router) --> 4.2(v2/v3 pools)
 3 <----> 5(1inch)
-3 <----> 6(redis for cache)
+3 <--cache--> 6(redis for cache)
+6 --get--> 7(mongo)
+3 --write-->7
 end
 ```
-
