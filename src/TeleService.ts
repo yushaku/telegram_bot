@@ -1,6 +1,7 @@
 import TelegramBot, { User } from "node-telegram-bot-api";
 import { v4 as uuidv4 } from "uuid";
 import {
+  esstimateMsg,
   esstimateSwap,
   tokenDetail,
   walletDetail,
@@ -15,10 +16,10 @@ import {
   toReadableAmount,
 } from "utils/utils";
 import { Account, isTransaction } from "utils/types";
-import { UNI, WETH, chainId } from "utils/token";
+import { UNI, WETH, chainId, isWETH } from "utils/token";
 import { Token } from "@uniswap/sdk-core";
 import { UniswapService } from "uniswap";
-import { RedisService } from "lib/RedisService";
+import { RedisService, isOrder, isSwapRoute } from "lib/RedisService";
 import {
   INIT_POOL,
   CLOSE,
@@ -29,6 +30,9 @@ import {
 } from "utils/replyTopic";
 import { getProvider } from "utils/networks";
 import { JsonRpcProvider } from "@ethersproject/providers";
+import { WrapToken } from "lib/WrapToken";
+import { getBalance, getBlock } from "lib/transaction";
+import { SwapRoute } from "@uniswap/smart-order-router";
 
 export class TeleService {
   private provider: JsonRpcProvider;
@@ -204,8 +208,8 @@ export class TeleService {
   async commandWallet(userId: number) {
     const user = await this.cache.getUser(userId);
     const [accounts, block] = await Promise.all([
-      this.getBalance(user.accounts),
-      this.getBlock(),
+      getBalance(user.accounts),
+      getBlock(),
     ]);
 
     return walletMsg({
@@ -325,7 +329,52 @@ export class TeleService {
     };
   }
 
-  async estimatePrice({
+  async estimate({
+    userId,
+    amount,
+    tokenAddress,
+  }: {
+    userId: number;
+    amount: number;
+    tokenAddress: string;
+  }) {
+    const acc = await this.getAccount(userId);
+    if (!acc) return { text: "Account not found", buttons: {} };
+
+    if (isWETH(tokenAddress)) {
+      const weth = new WrapToken(tokenAddress, "WETH", 18);
+      const gas = await weth.estimateGas("deposit", amount);
+      const { balance } = await getBalance(acc);
+
+      const id = uuidv4();
+      this.cache.setOrder(id, { amount, tokenAddress });
+      // const res = await weth.wrap(amount, acc.privateKey);
+
+      const buttonConfirm =
+        balance >= amount
+          ? { text: "👌 Confirm", callback_data: `confirm_swap ${id}` }
+          : { text: "💔 Don't enough token", callback_data: CLOSE };
+
+      return {
+        text: esstimateMsg({ gas, amount, balance }),
+        buttons: {
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: "⭕ No", callback_data: CLOSE }, buttonConfirm],
+            ],
+          },
+        },
+      };
+    } else {
+      return this.estimateSwap({
+        userId,
+        amount,
+        tokenAddress,
+      });
+    }
+  }
+
+  async estimateSwap({
     userId,
     amount,
     tokenAddress,
@@ -363,7 +412,7 @@ export class TeleService {
     }
 
     const id = uuidv4();
-    this.cache.setRoutes(id, route);
+    this.cache.setOrder(id, route);
 
     const ratio = shortenAmount(route.quote.toExact() ?? 0);
     const buttonConfirm =
@@ -394,31 +443,38 @@ export class TeleService {
   }
 
   async confirmSwap({ id, userId }: { id: string; userId: number }) {
-    const [data, user] = await Promise.all([
-      this.cache.getRoute(id),
-      this.cache.getUser(userId),
+    const [data, account] = await Promise.all([
+      this.cache.getOrder(id),
+      this.getAccount(userId),
     ]);
 
-    const wallet = user.accounts?.at(0);
-    const token = data?.route.at(0)?.route.input;
+    if (!account) return "No wallet found";
 
+    try {
+      if (isSwapRoute(data)) {
+        return this.swap({ data, account });
+      }
+
+      if (isOrder(data)) {
+        const weth = new WrapToken(data.tokenAddress, "WETH", 18);
+        return weth.wrap(data.amount, account.privateKey);
+      }
+    } catch (error) {
+      console.log(error);
+      return "Transaction is failed";
+    }
+  }
+
+  async swap({ data, account }: { data: SwapRoute; account: Account }) {
+    const token = data?.route.at(0)?.route.input;
     if (!data || !token) return "Transaction is expired";
-    if (!wallet) return "No wallet found";
 
     console.log("approved token");
 
-    await this.uniswap.checkTokenApproval({
-      token,
-      account: wallet,
-      amount: 100,
-    });
-
+    await this.uniswap.checkTokenApproval({ token, account, amount: 100 });
     console.log("start swappp");
 
-    const result = await this.uniswap.executeRoute({
-      account: wallet,
-      route: data,
-    });
+    const result = await this.uniswap.executeRoute({ account, route: data });
     console.log(result);
 
     return result;
@@ -427,7 +483,7 @@ export class TeleService {
   async getDetails({ wallet, userId }: { wallet: string; userId: number }) {
     const [balance, block, user] = await Promise.all([
       this.provider.getBalance(wallet),
-      this.getBlock(),
+      getBlock(),
       this.cache.getUser(userId),
     ]);
 
@@ -467,29 +523,21 @@ export class TeleService {
     };
   }
 
-  async getBalance(accList: Account[]) {
-    const balances = await Promise.all(
-      accList.map((account) => this.provider.getBalance(account.address)),
-    );
-
-    return accList.map((account, index) => ({
-      address: account.address,
-      balance: bigintToNumber(balances[index]),
-    }));
-  }
-
-  async getBlock() {
-    const [block, ethPrice] = await Promise.all([
-      this.provider.getBlock("latest"),
-      this.provider.getEtherPrice(),
-    ]);
-    return { block, ethPrice };
-  }
+  // async getBalance(accounts: Account) {
+  //   const amount = await this.provider
+  //     .getBalance(accounts.address)
+  //     .then((data) => Number(formatEther(data)));
+  //
+  //   return {
+  //     address: accounts.address,
+  //     balance: amount,
+  //   };
+  // }
 
   async getAccount(userId: number) {
     const user = await this.cache.getUser(userId);
     const acc = user.mainAccount;
-    const firstAcc = user.accounts.at(0);
+    const firstAcc = user.accounts?.at(0);
 
     if (!firstAcc) return null;
     if (acc) return acc;

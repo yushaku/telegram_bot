@@ -20,12 +20,25 @@ export class RedisService {
     return JSON.parse(user ?? "{ }");
   }
 
-  async setRoutes(id: string, route: SwapRoute) {
-    this.cache.set(`route/${id}`, JSON.stringify(route), "PX", 60 * 1000);
+  async setOrder(id: string, order: Order): Promise<void>;
+  async setOrder(id: string, order: SwapRoute): Promise<void>;
+
+  async setOrder(id: string, order: Order | SwapRoute) {
+    this.cache.set(`order/${id}`, JSON.stringify(order), "PX", 60 * 1000);
   }
 
-  async getRoute(id: string): Promise<SwapRoute | undefined> {
-    const route = await this.cache.get(`route/${id}`);
+  async getOrder(id: string): Promise<Order | SwapRoute | undefined> {
+    const route = await this.cache.get(`order/${id}`);
     return JSON.parse(route ?? "{ }");
   }
+}
+
+type Order = { tokenAddress: string; amount: number };
+
+export function isOrder(tx: Order | any): tx is Order {
+  return (tx as Order).amount !== undefined;
+}
+
+export function isSwapRoute(tx: SwapRoute | any): tx is SwapRoute {
+  return (tx as SwapRoute).route !== undefined;
 }

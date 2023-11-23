@@ -14,3 +14,4 @@ export const SELL_TOKEN = "sell_token";
 export const SELL_LIMIT = "sell_limit";
 
 export const CLOSE = "close";
+export const MENU = "menu";

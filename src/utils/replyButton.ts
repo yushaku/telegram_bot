@@ -1,7 +1,7 @@
 import TelegramBot from "node-telegram-bot-api";
 
 import { chainId } from "./token";
-import { ChainId } from "@uniswap/sdk-core";
+import { ChainId, WETH9 } from "@uniswap/sdk-core";
 import {
   FEATURES_WALLET,
   SET_SPLIPAGE,
@@ -12,6 +12,7 @@ import {
   BUY_LIMIT,
   CLOSE,
 } from "./replyTopic";
+import { UNI_GOERLI, UNI_MAINNET } from "@uniswap/smart-order-router";
 
 export const PREMIUM_BUTTONS = {
   reply_markup: {
@@ -102,7 +103,10 @@ export const TOKENS_BUTTONS: TelegramBot.SendMessageOptions =
               },
             ],
             [
-              { text: "WETH", callback_data: BUY_LIMIT },
+              {
+                text: "WETH",
+                callback_data: WETH9[ChainId.MAINNET].address,
+              },
               {
                 text: "WBTC",
                 callback_data: "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
@@ -129,7 +133,7 @@ export const TOKENS_BUTTONS: TelegramBot.SendMessageOptions =
               },
               {
                 text: "UNI",
-                callback_data: "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
+                callback_data: UNI_MAINNET.address,
               },
               {
                 text: "LEO",
@@ -147,11 +151,11 @@ export const TOKENS_BUTTONS: TelegramBot.SendMessageOptions =
             [
               {
                 text: "📀 WETH TEST",
-                callback_data: "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6",
+                callback_data: WETH9[ChainId.GOERLI].address,
               },
               {
                 text: "🦄 UNI TEST",
-                callback_data: "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984",
+                callback_data: UNI_GOERLI.address,
               },
             ],
             [{ text: "✖️  Close", callback_data: CLOSE }],

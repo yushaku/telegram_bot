@@ -7,7 +7,7 @@ import {
   TOKENS_BUTTONS,
   WALLET_BUTTONS,
 } from "utils/replyButton";
-import { START_MESSAGE } from "utils/replyMessage";
+import { START_MESSAGE, reportMsg } from "utils/replyMessage";
 import {
   IMPORT_WALLET,
   CREATE_WALLET,
@@ -17,6 +17,7 @@ import {
   SET_MAX_GAS,
   SET_SPLIPAGE,
   CLOSE,
+  BUY_TOKEN,
 } from "utils/replyTopic";
 import { isTransaction } from "utils/types";
 import { shortenAddress } from "utils/utils";
@@ -113,6 +114,7 @@ export class TeleBot {
       });
     });
 
+    // MARK: /tokens command
     this.bot.onText(/\/tokens/, async (msg) => {
       if (!msg.from) return;
       const acc = await this.teleService.getAccount(msg.from.id);
@@ -126,6 +128,7 @@ export class TeleBot {
       );
     });
 
+    // MARK: /wallets command
     this.bot.onText(/\/wallet/, async (msg) => {
       const id = msg.from?.id;
       if (!id) return;
@@ -148,6 +151,23 @@ export class TeleBot {
         },
       });
     });
+
+    // MARK: input an smartcontract address
+    this.bot.onText(/^(0x)?[0-9a-fA-F]{40}$/, async (msg) => {
+      const address = msg.text;
+      const userId = msg.from?.id;
+      if (!address || !userId) return;
+
+      const { text, buttons } = await this.teleService.checkToken({
+        address,
+        userId,
+      });
+      return this.bot.sendMessage(msg.chat.id, text, {
+        parse_mode: "Markdown",
+        disable_web_page_preview: false,
+        ...buttons,
+      });
+    });
   }
 
   handleCallback() {
@@ -159,7 +179,7 @@ export class TeleBot {
 
       if (!msg || !action || !userId || !chatId) return;
 
-      // NOTE: handle user send address of token
+      // MARK: Send address of token to swap
       if (isAddress(action)) {
         const { text, buttons } = await this.teleService.checkToken({
           address: action,
@@ -172,7 +192,6 @@ export class TeleBot {
         });
       }
 
-      // NOTE: handle callback specific function
       if (
         action.match(
           /(remove_wallet|detail_wallet|buy_custom|confirm_swap) (\S+)/g,
@@ -181,7 +200,9 @@ export class TeleBot {
         const [type, address] = action.split(" ");
 
         switch (type) {
+          // MARK: Pick wallet to interact
           case "detail_wallet": {
+            this.bot.deleteMessage(chatId, query?.message?.message_id ?? 0);
             const sent = await this.bot.sendMessage(chatId, "processing...");
             const { text, buttons } = await this.teleService.getDetails({
               wallet: address,
@@ -196,6 +217,7 @@ export class TeleBot {
             break;
           }
 
+          // MARK: remove wallet
           case "remove_wallet": {
             const sent = await this.bot.sendMessage(
               chatId,
@@ -217,6 +239,7 @@ export class TeleBot {
             );
           }
 
+          // MARK: buy amount of token
           case "buy_custom": {
             const sent = await this.bot.sendMessage(
               chatId,
@@ -234,12 +257,11 @@ export class TeleBot {
                     chatId,
                     "Estimate your price...",
                   );
-                  const { text, buttons } =
-                    await this.teleService.estimatePrice({
-                      userId: msg.from.id,
-                      amount: Number(msg.text),
-                      tokenAddress: address,
-                    });
+                  const { text, buttons } = await this.teleService.estimate({
+                    userId: msg.from.id,
+                    amount: Number(msg.text),
+                    tokenAddress: address,
+                  });
                   return this.bot.editMessageText(text, {
                     chat_id: sent.chat.id,
                     message_id: sent.message_id,
@@ -253,6 +275,7 @@ export class TeleBot {
             );
           }
 
+          // MARK: confirm swap
           case "confirm_swap": {
             if (!query.message) return;
             const sent = await this.bot.editMessageText("processing...", {
@@ -267,29 +290,33 @@ export class TeleBot {
               userId,
             });
 
-            let sent2: TelegramBot.Message;
-            if (isTransaction(result)) {
-              sent2 = this.bot.editMessageText(
-                `Transaction is pending ${result.hash}`,
-                {
-                  chat_id: sent.chat.id,
-                  message_id: sent.message_id,
-                },
-              ) as unknown as TelegramBot.Message;
+            if (!isTransaction(result)) return;
 
-              const received = await result.wait();
-              result = `Transaction Success! ${received.transactionHash}`;
-
-              return this.bot.editMessageText(result, {
+            const sent2 = await this.bot.editMessageText(
+              reportMsg({ status: "Pending", hash: result.hash }),
+              {
                 chat_id: sent.chat.id,
                 message_id: sent.message_id,
-              });
-            }
+              },
+            );
 
-            this.bot.editMessageText(result, {
-              chat_id: sent.chat.id,
-              message_id: sent.message_id,
-            });
+            if (typeof sent2 === "boolean") return;
+
+            const received = await result.wait();
+            console.log(`status: ${received.status}`);
+
+            return this.bot.editMessageText(
+              reportMsg({
+                status: received.status === 1 ? "Success" : "Failed",
+                hash: received.transactionHash,
+                gas: received.gasUsed,
+              }),
+              {
+                parse_mode: "Markdown",
+                chat_id: sent2.chat.id,
+                message_id: sent2.message_id,
+              },
+            );
           }
 
           default:
@@ -300,24 +327,27 @@ export class TeleBot {
         return;
       }
 
-      // NOTE: handle buttons function
       switch (action) {
+        // MARK: show wallet list and chain information
         case FEATURES_WALLET: {
           const text = await this.teleService.commandWallet(userId);
           return this.bot.sendMessage(chatId, text, WALLET_BUTTONS);
         }
 
+        // TODO: swap now
         case "swap_now": {
           const sent = await this.bot.sendMessage(chatId, "Swapping...");
           this.oneInch.swap();
           break;
         }
 
+        // TODO: pool provide
         case INIT_POOL: {
           const a = await this.teleService.initPool(query.from.id);
           return this.bot.sendMessage(chatId, "ok");
         }
 
+        // MARK: set gas limit and slippage
         case SET_MAX_GAS:
         case SET_SPLIPAGE: {
           const text =
@@ -347,11 +377,13 @@ export class TeleBot {
           );
         }
 
+        // MARK: remove message
         case CLOSE: {
           if (!query.message) return;
           return this.bot.deleteMessage(chatId, query.message.message_id);
         }
 
+        // MARK: Import wallet
         case IMPORT_WALLET: {
           const replyMsg = await this.bot.sendMessage(
             chatId,
@@ -375,6 +407,7 @@ export class TeleBot {
           );
         }
 
+        // MARK: Create wallet
         case CREATE_WALLET: {
           const acc = await this.teleService.createWallet(query.from.id);
           return this.bot.sendMessage(
@@ -384,9 +417,24 @@ export class TeleBot {
           );
         }
 
+        // MARK: List wallet
         case LIST_WALLET: {
           const btns = await this.teleService.listWallet(query.from.id);
           return this.bot.sendMessage(chatId, "Account List", btns);
+        }
+
+        // MARK: List tokens too same /tokens command
+        case BUY_TOKEN: {
+          if (!msg.from) return;
+          const acc = await this.teleService.getAccount(msg.from.id);
+          this.bot.sendMessage(
+            msg.chat.id,
+            `💰 Introducing our fast buy menu\nPurchase tokens with a single click.\nOur system uses w1 only and private transactions \nto safeguard against MEV attacks \n\n📈 Trading on account: \`${shortenAddress(
+              acc?.address,
+              6,
+            )}\``,
+            TOKENS_BUTTONS,
+          );
         }
 
         default:

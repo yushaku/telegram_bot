@@ -1,3 +1,8 @@
+import { BigNumber } from "ethers";
+import { urlScan } from "./contract";
+import { formatUnits } from "ethers/lib/utils";
+import { shortenAddress } from "./utils";
+
 export const START_MESSAGE = `
 What would you like to do today?
 Monitor
@@ -159,4 +164,33 @@ You receive \`${amountOut}\` ${tokenB}
 
 ---
 ⏲️ This transaction will expire after 1 minute
+`;
+
+export const esstimateMsg = ({
+  gas,
+  amount,
+  balance,
+}: {
+  gas?: string;
+  amount: number;
+  balance: number;
+}) => `
+Your wallet balance: \`${balance}\` ETH
+Wrap ETH will take \`${gas}\` gwei for gas fee
+From \`${amount}\` ETH to \`${amount}\` WETH
+`;
+
+export const reportMsg = ({
+  status,
+  hash,
+  gas,
+}: {
+  status: string;
+  hash: string;
+  gas?: BigNumber;
+}) => `
+Your transaction is ${status} 🚀
+Hash: \`${shortenAddress(hash, 12)}\`
+Gas Fee: \`${formatUnits(gas ?? 0, "gwei")}\` gwei
+View in [etherscan](${urlScan()}/tx/${hash})
 `;

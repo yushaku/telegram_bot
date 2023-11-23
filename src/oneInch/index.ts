@@ -1,14 +1,16 @@
 import { checkTokenApproval, getTokenInfo } from "lib/tokenErc20";
 import { axiosClient } from "utils/axiosClient";
-import { getProvider } from "utils/networks";
+import { getProvider, getWeb3Provider } from "utils/networks";
 import { MAIN_DAI, ONEINCH, chainId } from "utils/token";
 import { GasPrice, GenerateCalldata, Quote, SwapParams, Tx } from "./types";
 import { fromReadableAmount } from "utils/utils";
 import { Wallet } from "ethers";
 import { TransactionRequest } from "@ethersproject/providers";
+import { BROADCAST_API_URL } from "utils/constants";
 
 export class OneInchService {
   private provider = getProvider();
+  private web3 = getWeb3Provider();
 
   swapParams = {
     src: MAIN_DAI,
@@ -85,21 +87,16 @@ export class OneInchService {
     this.sendTransaction(data.tx, this.account.privateKey);
   }
 
-  async sendTransaction(transaction: TransactionRequest, privateKey: string) {
-    const signer = new Wallet(privateKey, this.provider);
-    const hash = await signer.signTransaction(transaction);
+  async sendTransaction(transaction: any, privateKey: string) {
+    const { rawTransaction } = await this.web3.eth.accounts.signTransaction(
+      transaction,
+      privateKey,
+    );
 
-    console.log(hash);
+    console.log(rawTransaction);
 
-    // const { rawTransaction } = await this.web3.eth.accounts.signTransaction(
-    //   transaction,
-    //   privateKey,
-    // );
-    //
-    // console.log(rawTransaction);
-
-    // const res = await axiosClient.post(BROADCAST_API_URL, { rawTransaction });
-    // console.log(res.data);
+    const res = await axiosClient.post(BROADCAST_API_URL, { rawTransaction });
+    console.log(res.data);
   }
 
   async getGasPrice() {

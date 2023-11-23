@@ -5,9 +5,9 @@ import { chainId } from "./token";
 const envSchema = z.object({
   TELE_BOT_ID: z.string(),
   SERVER_URL: z.string(),
-  INFURA_KEY: z.string().nonempty(),
-  ETHERSCAN_ID: z.string().nonempty(),
-  ONE_INCH_KEY: z.string().nonempty(),
+  INFURA_KEY: z.string(),
+  ETHERSCAN_ID: z.string(),
+  ONE_INCH_KEY: z.string(),
 });
 
 export const {
