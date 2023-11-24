@@ -6,6 +6,7 @@ import { NATIVE_CURRENCY, USDC_GOERLI, USDC_MAINNET } from "@uniswap/smart-order
 import { z } from "zod";
 
 const CHAIN = Object.values(ChainId).filter(value => typeof value !== 'number') as string[];
+
 const envSchema = z.object({
   NODE_ENV: z.enum([ 'LOCAL', ...CHAIN]).default("LOCAL"),
 });
@@ -23,7 +24,6 @@ function enumToMap<T extends string | number>(enumObj: Record<string, T>) {
 const chainList = enumToMap(ChainId);
 export const chainId = chainList.get(NODE_ENV) ?? ChainId.GOERLI
 
-console.log(`Rum on Chain: ${NODE_ENV} with id: ${chainId}`);
 
 export const MATIC_POLYGON = new Token(ChainId.POLYGON, '0x0000000000000000000000000000000000001010', 18, 'MATIC')
 export const MATIC_MUMBAI = new Token(ChainId.POLYGON_MUMBAI, '0x0000000000000000000000000000000000001010', 18, 'MATIC')

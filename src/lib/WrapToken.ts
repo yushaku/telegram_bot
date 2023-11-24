@@ -1,7 +1,7 @@
+import { JsonRpcProvider } from "@ethersproject/providers";
 import WTOKEN_ABI from "abis/weth.json";
 import { BigNumber, Contract, Wallet } from "ethers";
 import { formatUnits, parseEther } from "ethers/lib/utils";
-import { getProvider } from "utils/networks";
 import { fromReadableAmount, toReadableAmount } from "utils/utils";
 
 export class WrapToken {
@@ -9,12 +9,18 @@ export class WrapToken {
   public address: string;
   public decimals: number;
   private contract: Contract;
-  private provider = getProvider();
+  private provider: JsonRpcProvider;
 
-  constructor(address: string, name = "WToken", decimals = 18) {
+  constructor(
+    address: string,
+    name = "WToken",
+    decimals = 18,
+    provider: JsonRpcProvider,
+  ) {
     this.name = name;
     this.address = address;
     this.decimals = decimals;
+    this.provider = provider;
     this.contract = new Contract(address, WTOKEN_ABI, this.provider);
   }
 
@@ -34,8 +40,12 @@ export class WrapToken {
     };
   }
 
-  async balanceOf({ address }: { address: string }) {
-    return this.contract.balanceOf(address);
+  async balanceOf(address: string): Promise<number> {
+    return this.contract
+      .balanceOf(address)
+      .then((data: BigNumber) => toReadableAmount(data, this.decimals))
+      .then((data: string) => Number(data))
+      .catch((err: any) => console.log(err));
   }
 
   async approve({
@@ -63,7 +73,11 @@ export class WrapToken {
   }
 
   async allowance(account: string, spender: string) {
-    return this.contract.allowance(account, spender);
+    return this.contract
+      .allowance(account, spender)
+      .then((data: BigNumber) => toReadableAmount(data, this.decimals))
+      .then((data: string) => Number(data))
+      .catch((err: any) => console.log(err));
   }
 
   async estimateGas(fn: "deposit" | "withdraw" | "transfer", amount: number) {

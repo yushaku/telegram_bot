@@ -19,6 +19,7 @@ import {
   CLOSE,
   BUY_TOKEN,
 } from "utils/replyTopic";
+import { NODE_ENV, chainId } from "utils/token";
 import { isTransaction } from "utils/types";
 import { shortenAddress } from "utils/utils";
 
@@ -34,20 +35,9 @@ export class TeleBot {
   }
 
   init() {
-    console.log(`🤖 Telegram bot is running`);
+    console.info(`🤖 Telegram bot is running`);
+    console.info(`🚀 Run on Chain: ${NODE_ENV} with chain id: ${chainId}`);
     this.bot.setMyCommands([
-      {
-        command: "/trade",
-        description: "trading from weth to uni",
-      },
-      {
-        command: "/route",
-        description: "use route to swap weth -> uni",
-      },
-      {
-        command: "/test",
-        description: "create pools",
-      },
       {
         command: "/sniper",
         description: "Summons the Tigon bot main panel",
@@ -152,7 +142,7 @@ export class TeleBot {
       });
     });
 
-    // MARK: input an smartcontract address
+    // MARK: Address of smartcontract
     this.bot.onText(/^(0x)?[0-9a-fA-F]{40}$/, async (msg) => {
       const address = msg.text;
       const userId = msg.from?.id;
@@ -194,7 +184,7 @@ export class TeleBot {
 
       if (
         action.match(
-          /(remove_wallet|detail_wallet|buy_custom|confirm_swap) (\S+)/g,
+          /(remove_wallet|detail_wallet|buy_custom|confirm_swap|sell_custom) (\S+)/g,
         )
       ) {
         const [type, address] = action.split(" ");
@@ -239,7 +229,7 @@ export class TeleBot {
             );
           }
 
-          // MARK: buy amount of token
+          // MARK: 📌 buy amount of token
           case "buy_custom": {
             const sent = await this.bot.sendMessage(
               chatId,
@@ -315,6 +305,42 @@ export class TeleBot {
                 parse_mode: "Markdown",
                 chat_id: sent2.chat.id,
                 message_id: sent2.message_id,
+              },
+            );
+          }
+
+          // TODO: 🆘 sell amount of token
+          case "sell_custom": {
+            const sent = await this.bot.sendMessage(
+              chatId,
+              "✏️  Enter a custom sell amount. Greater or equal to 0.01",
+              { reply_markup: { force_reply: true } },
+            );
+
+            return this.bot.onReplyToMessage(
+              chatId,
+              sent.message_id,
+              async (msg) => {
+                if (!msg.from?.id) return;
+                if (Number(msg.text) >= 0.01) {
+                  const sent = await this.bot.sendMessage(
+                    chatId,
+                    "Estimate your price...",
+                  );
+                  const { text, buttons } = await this.teleService.estimate({
+                    userId: msg.from.id,
+                    amount: Number(msg.text),
+                    tokenAddress: address,
+                  });
+                  return this.bot.editMessageText(text, {
+                    chat_id: sent.chat.id,
+                    message_id: sent.message_id,
+                    parse_mode: "Markdown",
+                    ...buttons,
+                  });
+                } else {
+                  return this.bot.sendMessage(chatId, "Invalid custom amount");
+                }
               },
             );
           }

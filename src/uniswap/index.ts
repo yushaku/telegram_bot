@@ -1,42 +1,55 @@
-import { MAX_FEE_PER_GAS, MAX_PRIORITY_FEE_PER_GAS, protocols } from './../utils/constants';
-import { BigNumber, Contract, Wallet, ethers } from 'ethers';
-import JSBI from 'jsbi';
-import ERC20_ABI from '../abis/erc20.json';
-import { fromReadableAmount, fromReadableToAmount, toReadableAmount } from '../utils/utils';
-import { Currency, CurrencyAmount, Percent, Token, TradeType } from '@uniswap/sdk-core';
+import { TransactionRequest } from "@ethersproject/providers";
 import {
-  SwapRoute,
+  Currency,
+  CurrencyAmount,
+  Percent,
+  Token,
+  TradeType,
+} from "@uniswap/sdk-core";
+import {
   AlphaRouter,
-  SwapOptionsSwapRouter02,
-  SwapType,
   SwapOptions,
-} from '@uniswap/smart-order-router';
+  SwapOptionsSwapRouter02,
+  SwapRoute,
+  SwapType,
+} from "@uniswap/smart-order-router";
 import {
-  Pool,
-  Route,
-  Trade,
-  SwapRouter,
-  SwapQuoter,
+  FeeAmount,
   MintOptions,
   NonfungiblePositionManager,
+  Pool,
   Position,
+  Route,
+  SwapQuoter,
+  SwapRouter,
+  Trade,
   nearestUsableTick,
-  FeeAmount,
-} from '@uniswap/v3-sdk';
-import { TransactionRequest } from '@ethersproject/providers';
-import { getQuote } from './quote';
-import { getPoolInfoV3 } from './pools';
-import { getProvider } from 'utils/networks';
+} from "@uniswap/v3-sdk";
+import { BigNumber, Contract, Wallet, ethers } from "ethers";
+import JSBI from "jsbi";
 import {
-  V2_SWAP_ROUTER_ADDRESS,
-  SWAP_ROUTER_ADDRESS,
-  QUOTER_CONTRACT_ADDRESS,
-  NONFUNGIBLE_POSITION_MANAGER_CONTRACT_ADDRESS,
   NONFUNGIBLE_POSITION_MANAGER_ABI,
-} from 'utils/constants';
-import { chainId } from 'utils/token';
-import { Account } from 'utils/types';
-import { TransactionState, PositionInfo } from './types';
+  NONFUNGIBLE_POSITION_MANAGER_CONTRACT_ADDRESS,
+  QUOTER_CONTRACT_ADDRESS,
+  SWAP_ROUTER_ADDRESS,
+  V2_SWAP_ROUTER_ADDRESS,
+} from "utils/constants";
+import { getProvider } from "utils/networks";
+import { chainId } from "utils/token";
+import { Account } from "utils/types";
+import ERC20_ABI from "../abis/erc20.json";
+import {
+  fromReadableAmount,
+  fromReadableToAmount,
+  toReadableAmount,
+} from "../utils/utils";
+import {
+  MAX_FEE_PER_GAS,
+  MAX_PRIORITY_FEE_PER_GAS,
+} from "./../utils/constants";
+import { getPoolInfoV3 } from "./pools";
+import { getQuote } from "./quote";
+import { PositionInfo, TransactionState } from "./types";
 
 export class UniswapService {
   private provider: ethers.providers.JsonRpcProvider;
@@ -63,17 +76,25 @@ export class UniswapService {
       }),
     ]);
 
+    console.log({ tokenA, tokenB });
+
     return { tokenA, tokenB };
   }
 
-  async getTokenInfo({ tokenAddress, walletAddress }: { tokenAddress: string; walletAddress?: string }) {
-    const contractERC20 = new Contract(tokenAddress, ERC20_ABI, this.provider);
+  async getTokenInfo({
+    tokenAddress,
+    walletAddress,
+  }: {
+    tokenAddress: string;
+    walletAddress?: string;
+  }) {
+    const erc20 = new Contract(tokenAddress, ERC20_ABI, this.provider);
 
     const [balance, decimals, name, symbol] = await Promise.all([
-      walletAddress ? contractERC20.balanceOf(walletAddress) : 0,
-      contractERC20.decimals(),
-      contractERC20.name(),
-      contractERC20.symbol(),
+      walletAddress ? erc20.balanceOf(walletAddress) : 0,
+      erc20.decimals(),
+      erc20.name(),
+      erc20.symbol(),
     ]);
 
     return {
@@ -112,12 +133,23 @@ export class UniswapService {
       fromReadableToAmount(amount, tokenA.decimals).toString(),
     );
 
-    const route = await router.route(amountIn, tokenB, TradeType.EXACT_INPUT, options);
+    const route = await router.route(
+      amountIn,
+      tokenB,
+      TradeType.EXACT_INPUT,
+      options,
+    );
 
     return route;
   }
 
-  async executeRoute({ route, account }: { route: SwapRoute; account: Account }) {
+  async executeRoute({
+    route,
+    account,
+  }: {
+    route: SwapRoute;
+    account: Account;
+  }) {
     const tx = {
       chainId,
       from: account.address,
@@ -130,16 +162,22 @@ export class UniswapService {
       return this.sendTransaction({ account, tx });
     } catch (error) {
       console.log(error);
-      return 'Buy token failed';
+      return "Buy token failed";
     }
   }
 
-  async sendTransaction({ account, tx }: { account: Account; tx: TransactionRequest }) {
+  async sendTransaction({
+    account,
+    tx,
+  }: {
+    account: Account;
+    tx: TransactionRequest;
+  }) {
     try {
       const wallet = new Wallet(account.privateKey, this.provider);
       const [nonce, gasLimit, gasPrice] = await Promise.all([
         wallet.getTransactionCount(),
-        this.provider.getBlock('latest').then((data) => data.gasLimit),
+        this.provider.getBlock("latest").then((data) => data.gasLimit),
         this.provider.getGasPrice(),
       ]);
 
@@ -157,7 +195,7 @@ export class UniswapService {
 
       const signedTransaction = await wallet.signTransaction(transaction);
       // transaction.gasLimit = estimate.add(estimate.div(10));
-      console.log('send transaction');
+      console.log("send transaction");
       return await wallet.sendTransaction(transaction);
       // let receipt = null;
 
@@ -176,7 +214,7 @@ export class UniswapService {
       // }
     } catch (error) {
       console.log(error);
-      return 'Buy token failed';
+      return "Buy token failed";
     }
   }
 
@@ -195,17 +233,23 @@ export class UniswapService {
       const signer = new Wallet(account.privateKey, this.provider);
       const tokenContract = new Contract(token.address, ERC20_ABI, signer);
 
-      const allowedAmount = await tokenContract.allowance(account.address, contractAddress);
+      const allowedAmount = await tokenContract.allowance(
+        account.address,
+        contractAddress,
+      );
 
       console.log(`Allowed amount: ${toReadableAmount(allowedAmount)}`);
 
-      if (allowedAmount >= amount) return 'Ok';
+      if (allowedAmount >= amount) return "Ok";
       const hexAmount = fromReadableToAmount(amount, token.decimals).toString();
 
-      const transaction = await tokenContract.approve(contractAddress, hexAmount);
+      const transaction = await tokenContract.approve(
+        contractAddress,
+        hexAmount,
+      );
 
       await transaction.wait();
-      return 'Ok';
+      return "Ok";
     } catch (error) {
       console.error(error);
       return TransactionState.Failed;
@@ -223,7 +267,7 @@ export class UniswapService {
     amount: number;
     poolFee?: number;
   }) {
-    const poolInfo = await getPoolInfoV3(tokenA, tokenB);
+    const poolInfo = await getPoolInfoV3(tokenA, tokenB, this.provider);
     const pool = new Pool(
       tokenA,
       tokenB,
@@ -235,7 +279,7 @@ export class UniswapService {
 
     const route = new Route([pool], tokenA, tokenB);
     console.log(route);
-    console.log('get output quote');
+    console.log("get output quote");
     const amountOut = await this.getOutputQuote({
       token: tokenA,
       route,
@@ -250,14 +294,23 @@ export class UniswapService {
         tokenA,
         fromReadableAmount(amount, tokenA.decimals).toString(),
       ),
-      outputAmount: CurrencyAmount.fromRawAmount(tokenB, JSBI.BigInt(amountOut)),
+      outputAmount: CurrencyAmount.fromRawAmount(
+        tokenB,
+        JSBI.BigInt(amountOut),
+      ),
       tradeType: TradeType.EXACT_INPUT,
     });
 
     return uncheckedTrade;
   }
 
-  async executeTrade({ trade, account }: { trade: Trade<Currency, Currency, TradeType>; account: Account }) {
+  async executeTrade({
+    trade,
+    account,
+  }: {
+    trade: Trade<Currency, Currency, TradeType>;
+    account: Account;
+  }) {
     const options: SwapOptions = {
       type: SwapType.SWAP_ROUTER_02,
       slippageTolerance: new Percent(50, 10_000), // 50 bips, or 0.50%
@@ -290,7 +343,10 @@ export class UniswapService {
   }) {
     const { calldata } = SwapQuoter.quoteCallParameters(
       route,
-      CurrencyAmount.fromRawAmount(token, fromReadableAmount(amount, token.decimals).toString()),
+      CurrencyAmount.fromRawAmount(
+        token,
+        fromReadableAmount(amount, token.decimals).toString(),
+      ),
       TradeType.EXACT_INPUT,
       { useQuoterV2: true },
     );
@@ -301,7 +357,7 @@ export class UniswapService {
     });
 
     console.log({ data });
-    return ethers.utils.defaultAbiCoder.decode(['uint256'], data);
+    return ethers.utils.defaultAbiCoder.decode(["uint256"], data);
   }
 
   async quote({
@@ -331,7 +387,8 @@ export class UniswapService {
     // Get all positions
     const tokenIds = [];
     for (let i = 0; i < balance; i++) {
-      const tokenOfOwnerByIndex: number = await positionContract.tokenOfOwnerByIndex(address, i);
+      const tokenOfOwnerByIndex: number =
+        await positionContract.tokenOfOwnerByIndex(address, i);
       tokenIds.push(tokenOfOwnerByIndex);
     }
 
@@ -358,9 +415,16 @@ export class UniswapService {
     };
   }
 
-  async constructPosition(tokenA: CurrencyAmount<Token>, tokenB: CurrencyAmount<Token>): Promise<Position> {
+  async constructPosition(
+    tokenA: CurrencyAmount<Token>,
+    tokenB: CurrencyAmount<Token>,
+  ): Promise<Position> {
     // get pool info
-    const poolInfo = await getPoolInfoV3(tokenA.currency, tokenB.currency);
+    const poolInfo = await getPoolInfoV3(
+      tokenA.currency,
+      tokenB.currency,
+      this.provider,
+    );
 
     // construct pool instance
     const configuredPool = new Pool(
@@ -375,8 +439,12 @@ export class UniswapService {
     // create position using the maximum liquidity from input amounts
     return Position.fromAmounts({
       pool: configuredPool,
-      tickLower: nearestUsableTick(poolInfo.tick, poolInfo.tickSpacing) - poolInfo.tickSpacing * 2,
-      tickUpper: nearestUsableTick(poolInfo.tick, poolInfo.tickSpacing) + poolInfo.tickSpacing * 2,
+      tickLower:
+        nearestUsableTick(poolInfo.tick, poolInfo.tickSpacing) -
+        poolInfo.tickSpacing * 2,
+      tickUpper:
+        nearestUsableTick(poolInfo.tick, poolInfo.tickSpacing) +
+        poolInfo.tickSpacing * 2,
       amount0: tokenA.quotient,
       amount1: tokenB.quotient,
       useFullPrecision: true,
@@ -396,7 +464,7 @@ export class UniswapService {
     amountA: number;
     amountB: number;
   }) {
-    console.log('start');
+    console.log("start");
 
     const [tokenInApproval, tokenOutApproval] = await Promise.all([
       this.checkTokenApproval({
@@ -413,17 +481,26 @@ export class UniswapService {
       }),
     ]);
 
-    if (tokenInApproval === TransactionState.Failed || tokenOutApproval === TransactionState.Failed) {
-      console.log('False');
-      return 'False';
+    if (
+      tokenInApproval === TransactionState.Failed ||
+      tokenOutApproval === TransactionState.Failed
+    ) {
+      console.log("False");
+      return "False";
     }
 
     const positionToMint = await this.constructPosition(
-      CurrencyAmount.fromRawAmount(tokenA, fromReadableToAmount(amountA, tokenA.decimals)),
-      CurrencyAmount.fromRawAmount(tokenB, fromReadableToAmount(amountB, tokenB.decimals)),
+      CurrencyAmount.fromRawAmount(
+        tokenA,
+        fromReadableToAmount(amountA, tokenA.decimals),
+      ),
+      CurrencyAmount.fromRawAmount(
+        tokenB,
+        fromReadableToAmount(amountB, tokenB.decimals),
+      ),
     );
 
-    console.log('position', positionToMint);
+    console.log("position", positionToMint);
 
     const mintOptions: MintOptions = {
       recipient: account.address,
@@ -432,7 +509,10 @@ export class UniswapService {
     };
 
     // get calldata for minting a position
-    const { calldata, value } = NonfungiblePositionManager.addCallParameters(positionToMint, mintOptions);
+    const { calldata, value } = NonfungiblePositionManager.addCallParameters(
+      positionToMint,
+      mintOptions,
+    );
 
     // build transaction
     const transaction: TransactionRequest = {
@@ -442,7 +522,7 @@ export class UniswapService {
       value: value,
     };
 
-    console.log('transaction', transaction);
+    console.log("transaction", transaction);
 
     return this.sendTransaction({ account, tx: transaction });
   }

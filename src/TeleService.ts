@@ -17,7 +17,7 @@ import {
 } from "utils/utils";
 import { Account, isTransaction } from "utils/types";
 import { UNI, WETH, chainId, isWETH } from "utils/token";
-import { Token } from "@uniswap/sdk-core";
+import { Token, WETH9 } from "@uniswap/sdk-core";
 import { UniswapService } from "uniswap";
 import { RedisService, isOrder, isSwapRoute } from "lib/RedisService";
 import {
@@ -164,7 +164,6 @@ export class TeleService {
     const tokenA = WETH;
     const tokenB = UNI;
     const amountA = 0.01;
-    const amountB = 0.01;
 
     this.uniswap.quote({ tokenA, tokenB, amount: amountA, account });
     // this.uniswap.mintPosition({
@@ -307,6 +306,12 @@ export class TeleService {
             },
           ],
           [
+            {
+              text: "💰 Sell custom amount",
+              callback_data: `sell_custom ${address}`,
+            },
+          ],
+          [
             { text: "↪️  Buy Menu", callback_data: `sell ${address}` },
             { text: "🎛️ Menu", callback_data: "MENU" },
           ],
@@ -383,16 +388,12 @@ export class TeleService {
     amount: number;
     tokenAddress: string;
   }) {
-    const tokenA = WETH;
+    const tokenA = WETH9[chainId];
     const tokenB = new Token(chainId, tokenAddress, 18);
 
     const user = await this.cache.getUser(userId);
     const walletAddress = user.accounts?.at(0)?.address;
-
-    if (!walletAddress)
-      return {
-        text: "User haven't got wallet",
-      };
+    if (!walletAddress) return { text: "User haven't got wallet" };
 
     const [pair, route] = await Promise.all([
       this.uniswap.checkBalance({

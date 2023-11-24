@@ -51,7 +51,7 @@ export class Erc20Token {
     to: string;
     privateKey: string;
   }) {
-    const signer = this.provider.getSigner(privateKey);
+    const signer = new Wallet(privateKey, this.provider);
     const contract = new Contract(this.address, ERC20, signer);
 
     try {
@@ -67,11 +67,19 @@ export class Erc20Token {
   }
 
   async allowance(account: string, spender: string) {
-    return this.contract.allowance(account, spender);
+    return this.contract
+      .allowance(account, spender)
+      .then((data: BigNumber) => toReadableAmount(data, this.decimals))
+      .then((data: string) => Number(data))
+      .catch((err: any) => console.log(err));
   }
 
-  async balanceOf({ address }: { address: string }) {
-    return this.contract.balanceOf(address);
+  async balanceOf(address: string): Promise<number> {
+    return this.contract
+      .balanceOf(address)
+      .then((data: BigNumber) => toReadableAmount(data, this.decimals))
+      .then((data: string) => Number(data))
+      .catch((err: any) => console.log(err));
   }
 
   async estimateGas(
@@ -126,15 +134,11 @@ export class Erc20Token {
       console.log(`Allowed amount: ${toReadableAmount(allowedAmount)}`);
       if (allowedAmount >= amount) return "Ok";
 
-      const transaction = await this.approve({
+      return this.approve({
         amount,
         privateKey: account.privateKey,
         to: spender,
       });
-
-      const result = await transaction.wait();
-      console.log("transaction: " + result?.transactionHash);
-      return result?.transactionHash;
     } catch (error) {
       console.error(error);
       return TransactionState.Failed;
