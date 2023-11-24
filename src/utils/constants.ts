@@ -8,6 +8,7 @@ const envSchema = z.object({
   INFURA_KEY: z.string(),
   ETHERSCAN_ID: z.string(),
   ONE_INCH_KEY: z.string(),
+  COIN_MARKET_KEY: z.string(),
 });
 
 export const {
@@ -16,6 +17,7 @@ export const {
   INFURA_KEY,
   ETHERSCAN_ID,
   ONE_INCH_KEY,
+  COIN_MARKET_KEY,
 } = envSchema.parse(process.env);
 
 export const BROADCAST_API_URL = `https://api.1inch.dev/tx-gateway/v1.1/${chainId}/broadcast/`;

@@ -33,16 +33,19 @@ import TelegramBot, { User } from "node-telegram-bot-api";
 import { v4 as uuidv4 } from "uuid";
 import { Erc20Token } from "./lib/Erc20token";
 import { urlScan } from "./utils/contract";
+import { CoinMarket } from "./market";
 
 export class TeleService {
   private provider: JsonRpcProvider;
   private cache: RedisService;
   private uniswap: UniswapService;
+  private market: CoinMarket;
 
   constructor() {
     this.provider = getProvider();
     this.uniswap = new UniswapService();
     this.cache = new RedisService();
+    this.market = new CoinMarket();
   }
 
   async hi(userId: number) {
@@ -230,6 +233,8 @@ export class TeleService {
     const { name, symbol, decimals, balance } = await token.getInfo(
       acc.address,
     );
+
+    this.market.tokenInfo(address);
 
     const buttons = {
       reply_markup: {
