@@ -71,7 +71,7 @@ export class TeleBot {
         "Swap from WETH to UNI",
       );
       const text = await this.teleService.hi(msg.from.id);
-      this.bot.editMessageText(text ?? "hello", {
+      this.bot.editMessageText("hello", {
         message_id: sent.message_id,
         chat_id: sent.chat.id,
         parse_mode: "Markdown",
@@ -130,7 +130,7 @@ export class TeleBot {
       });
     });
 
-    // MARK: Address of smartcontract
+    // MARK: /address of smartcontract
     this.bot.onText(/^(0x)?[0-9a-fA-F]{40}$/, async (msg) => {
       const address = msg.text;
       const userId = msg.from?.id;
@@ -244,6 +244,7 @@ export class TeleBot {
                     chat_id: sent.chat.id,
                     message_id: sent.message_id,
                     parse_mode: "Markdown",
+                    disable_web_page_preview: false,
                     ...buttons,
                   });
                 } else {
@@ -279,10 +280,7 @@ export class TeleBot {
             );
 
             if (typeof sent2 === "boolean") return;
-
             const received = await result.wait();
-            console.log(`status: ${received.status}`);
-
             return this.bot.editMessageText(
               reportMsg({
                 status: received.status === 1 ? "Success" : "Failed",
@@ -356,7 +354,6 @@ export class TeleBot {
 
         // TODO: pool provide
         case INIT_POOL: {
-          const a = await this.teleService.initPool(query.from.id);
           return this.bot.sendMessage(chatId, "ok");
         }
 

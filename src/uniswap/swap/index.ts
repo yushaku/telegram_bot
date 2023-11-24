@@ -1,3 +1,4 @@
+import { getProvider } from "@/utils/networks";
 import { chainId } from "@/utils/token";
 import { JsonRpcProvider, TransactionRequest } from "@ethersproject/providers";
 import {
@@ -37,22 +38,22 @@ import { Account } from "utils/types";
 import { fromReadableAmount, fromReadableToAmount } from "utils/utils";
 
 export class UniRoute {
-  private provider: JsonRpcProvider;
+  protected provider: JsonRpcProvider;
 
-  constructor(provider: JsonRpcProvider) {
-    this.provider = provider;
+  constructor(provider?: JsonRpcProvider) {
+    this.provider = provider ?? getProvider();
   }
 
-  async createTrade({
+  async generateTrade({
     tokenA,
     tokenB,
-    fee,
+    fee = FeeAmount.MEDIUM,
     amount,
     account,
   }: {
     tokenA: Token;
     tokenB: Token;
-    fee: FeeAmount;
+    fee?: FeeAmount;
     amount: number;
     account: Account;
   }) {
@@ -63,12 +64,20 @@ export class UniRoute {
       this.provider,
     );
 
-    const res = await tokenIn.checkTokenApproval({
-      amount,
-      account,
-      spender: SWAP_ROUTER_ADDRESS,
-    });
-    if (res === TransactionState.Failed) return;
+    const [currencyAmount, res] = await Promise.all([
+      tokenIn.balanceOf(account.address),
+      tokenIn.checkTokenApproval({
+        amount,
+        account,
+        spender: SWAP_ROUTER_ADDRESS,
+      }),
+    ]);
+
+    if (res === TransactionState.Failed || currencyAmount < amount) {
+      console.log(`currency amount: ${currencyAmount} less than ${amount}`);
+
+      throw new Error("Insufficient token balance 🆘");
+    }
 
     const uniPools = new UniPools(this.provider);
     const poolInfo = await uniPools.poolV3(tokenA, tokenB);
@@ -247,7 +256,7 @@ export class UniRoute {
   }: {
     account: Account;
     tx: TransactionRequest;
-  }): Promise<string | ethers.providers.TransactionReceipt> {
+  }): Promise<ethers.providers.TransactionReceipt | undefined> {
     try {
       const signer = new Wallet(account.privateKey, this.provider);
 
@@ -260,8 +269,7 @@ export class UniRoute {
       const res = await signer.sendTransaction(tx);
       return res.wait();
     } catch (error) {
-      console.log(error);
-      return "Buy token failed";
+      throw new Error("Error sending transaction");
     }
   }
 }

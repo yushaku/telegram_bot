@@ -13,7 +13,6 @@ import {
   BUY_LIMIT,
   BUY_TOKEN,
   CLOSE,
-  INIT_POOL,
   SELL_LIMIT,
   SELL_TOKEN,
 } from "@/utils/replyTopic";
@@ -25,14 +24,15 @@ import {
   parseKey,
   shortenAddress,
   shortenAmount,
-  toReadableAmount,
 } from "@/utils/utils";
 import { JsonRpcProvider } from "@ethersproject/providers";
 import { Token, WETH9 } from "@uniswap/sdk-core";
 import { SwapRoute } from "@uniswap/smart-order-router";
-import { RedisService, isOrder, isSwapRoute } from "lib/RedisService";
+import { RedisService, isOrder, isSwapRoute, isTrade } from "lib/RedisService";
 import TelegramBot, { User } from "node-telegram-bot-api";
 import { v4 as uuidv4 } from "uuid";
+import { Erc20Token } from "./lib/Erc20token";
+import { urlScan } from "./utils/contract";
 
 export class TeleService {
   private provider: JsonRpcProvider;
@@ -53,23 +53,17 @@ export class TeleService {
     const tokenB = UNI;
     const amount = 0.01;
 
-    console.log("check approval");
-
-    this.uniswap.checkTokenApproval({
-      token: tokenA,
-      account,
-      amount,
-    });
-
     console.log("create trade");
 
-    const trade = await this.uniswap.createTrade({
+    const trade = await this.uniswap.generateTrade({
       tokenA,
       tokenB,
       amount,
+      account,
     });
 
     console.log("execute trade");
+    if (!trade) return "Trade failed";
 
     const a = await this.uniswap.executeTrade({ trade, account });
 
@@ -77,11 +71,6 @@ export class TeleService {
 
     console.log(a.hash);
     return `Buying...\nCheckout [etherscan](https://goerli.etherscan.io/tx/${a.hash})`;
-
-    // const receive: TransactionReceipt = await a.wait();
-    // console.log(receive);
-    // if (receive.status === 0) return "Swap transaction failed";
-    // else return `Buy completed \n checkout etherscan  https://goerli.etherscan.io/${receive.transactionHash}`;
   }
 
   async hello(userId: number) {
@@ -92,14 +81,6 @@ export class TeleService {
     const tokenB = UNI;
     const amount = 0.01;
 
-    console.log("check approval");
-
-    this.uniswap.checkTokenApproval({
-      token: tokenA,
-      account,
-      amount,
-    });
-
     console.log("create trade");
 
     const route = await this.uniswap.generateRoute({
@@ -107,6 +88,7 @@ export class TeleService {
       tokenA,
       tokenB,
       amount,
+      account,
     });
 
     if (!route) return "create route failed";
@@ -120,59 +102,6 @@ export class TeleService {
       return "Swap transaction failed";
     }
     return `Buy completed\ncheckout [etherscan](https://goerli.etherscan.io/${receive.transactionHash})`;
-  }
-
-  async conichiwa(userId: number) {
-    const account = await this.getAccount(userId);
-    if (!account)
-      return {
-        text: "Account not found",
-      };
-
-    const ids = await this.uniswap.getPositionIds(account.address);
-    const positionsInfo = await Promise.all(
-      ids.map((id) => this.uniswap.getPositionInfo(id)),
-    );
-
-    console.log(positionsInfo);
-
-    const text = positionsInfo
-      .map(({ tickLower, tickUpper, liquidity }) => {
-        return `ticks: ${tickLower}/${tickUpper}\nliquidity ${toReadableAmount(
-          liquidity,
-        )}`;
-      })
-      .join("\n\n");
-
-    return {
-      text: `List your pools \n\n${
-        positionsInfo.length > 0 ? text : "You have no pools"
-      }`,
-      buttons: {
-        reply_markup: {
-          inline_keyboard: [[{ text: "Init pool", callback_data: INIT_POOL }]],
-        },
-      },
-    };
-  }
-
-  async initPool(userId: number) {
-    const user = await this.cache.getUser(userId);
-    const account = user.accounts.at(0);
-    if (!account) return;
-
-    const tokenA = WETH;
-    const tokenB = UNI;
-    const amountA = 0.01;
-
-    this.uniswap.quote({ tokenA, tokenB, amount: amountA, account });
-    // this.uniswap.mintPosition({
-    //   account,
-    //   tokenA,
-    //   tokenB,
-    //   amountA,
-    //   amountB,
-    // });
   }
 
   async commandStart(user: User) {
@@ -286,11 +215,21 @@ export class TeleService {
   }
 
   async checkToken({ address, userId }: { address: string; userId: number }) {
-    const user = await this.cache.getUser(userId);
-    const { name, symbol, decimals } = await this.uniswap.getTokenInfo({
-      tokenAddress: address,
-      walletAddress: user.accounts.at(0)?.address,
-    });
+    const acc = await this.getAccount(userId);
+    if (!acc)
+      return {
+        text: "Wallet not found",
+        buttons: {
+          reply_markup: {
+            inline_keyboard: [[{ text: "❎ Close", callback_data: CLOSE }]],
+          },
+        },
+      };
+
+    const token = new Erc20Token(address, "token", 18, this.provider);
+    const { name, symbol, decimals, balance } = await token.getInfo(
+      acc.address,
+    );
 
     const buttons = {
       reply_markup: {
@@ -326,6 +265,7 @@ export class TeleService {
         name,
         symbol,
         address,
+        balance,
         decimals,
         supply: 1000,
         marketcap: 100000,
@@ -371,7 +311,7 @@ export class TeleService {
         },
       };
     } else {
-      return this.estimateSwap({
+      return this.estimateTrade({
         userId,
         amount,
         tokenAddress,
@@ -379,7 +319,7 @@ export class TeleService {
     }
   }
 
-  async estimateSwap({
+  async estimateRoute({
     userId,
     amount,
     tokenAddress,
@@ -391,20 +331,21 @@ export class TeleService {
     const tokenA = WETH9[chainId];
     const tokenB = new Token(chainId, tokenAddress, 18);
 
-    const user = await this.cache.getUser(userId);
-    const walletAddress = user.accounts?.at(0)?.address;
-    if (!walletAddress) return { text: "User haven't got wallet" };
+    const account = await this.getAccount(userId);
+    if (!account) return { text: "User haven't got wallet" };
 
     const [pair, route] = await Promise.all([
       this.uniswap.checkBalance({
-        walletAddress,
+        walletAddress: account.address,
         tokens: { tokenA, tokenB },
       }),
+
       this.uniswap.generateRoute({
-        walletAddress,
+        walletAddress: account.address,
         tokenA,
         tokenB,
         amount,
+        account,
       }),
     ]);
 
@@ -443,6 +384,49 @@ export class TeleService {
     };
   }
 
+  async estimateTrade({
+    userId,
+    amount,
+    tokenAddress,
+  }: {
+    userId: number;
+    amount: number;
+    tokenAddress: string;
+  }) {
+    const tokenA = WETH9[chainId];
+    const tokenB = new Token(chainId, tokenAddress, 18);
+
+    const account = await this.getAccount(userId);
+    if (!account) return { text: "User haven't got wallet" };
+
+    const [pair, trade] = await Promise.all([
+      this.uniswap.checkBalance({
+        walletAddress: account.address,
+        tokens: { tokenA, tokenB },
+      }),
+      this.uniswap.generateTrade({
+        tokenA,
+        tokenB,
+        amount,
+        account,
+      }),
+    ]);
+
+    if (!trade) {
+      return { text: "Token do not support", buttons: null };
+    }
+
+    if (pair.tokenA.balance < amount) {
+      return { text: `Not enough amount of ${tokenA.name}`, buttons: null };
+    }
+
+    const a = await this.uniswap.executeTrade({ account, trade });
+
+    return {
+      text: `✅ Buy token success \nCheck transaction: [etherscan](${urlScan()}/tx/${a?.transactionHash})`,
+    };
+  }
+
   async confirmSwap({ id, userId }: { id: string; userId: number }) {
     const [data, account] = await Promise.all([
       this.cache.getOrder(id),
@@ -461,6 +445,15 @@ export class TeleService {
         const weth = new WrapToken(address, "WETH", 18, this.provider);
         return weth.wrap(data.amount, account.privateKey);
       }
+
+      if (isTrade(data)) {
+        console.log("Start confirm trade");
+        const a = await this.uniswap.executeTrade({
+          trade: data,
+          account,
+        });
+        console.log(a);
+      }
     } catch (error) {
       console.log(error);
       return "Transaction is failed";
@@ -471,9 +464,6 @@ export class TeleService {
     const token = data?.route.at(0)?.route.input;
     if (!data || !token) return "Transaction is expired";
 
-    console.log("approved token");
-
-    await this.uniswap.checkTokenApproval({ token, account, amount: 100 });
     console.log("start swappp");
 
     const result = await this.uniswap.executeRoute({ account, route: data });

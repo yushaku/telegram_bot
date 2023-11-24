@@ -35,7 +35,7 @@ export class Erc20Token {
     ]);
 
     return {
-      balance: toReadableAmount(balance, decimals),
+      balance: Number(toReadableAmount(balance, decimals)),
       decimals,
       name,
       symbol,
@@ -60,6 +60,7 @@ export class Erc20Token {
         fromReadableAmount(amount, this.decimals),
       );
       const result = await tx.wait();
+      console.log(`Allowed ${amount} to ${to} `);
       return result;
     } catch (error) {
       console.log(error);
@@ -131,7 +132,7 @@ export class Erc20Token {
     try {
       const allowedAmount = await this.allowance(account.address, spender);
 
-      console.log(`Allowed amount: ${toReadableAmount(allowedAmount)}`);
+      console.log(`Allowed amount: ${allowedAmount}`);
       if (allowedAmount >= amount) return "Ok";
 
       return this.approve({

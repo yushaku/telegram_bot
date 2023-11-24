@@ -1,6 +1,7 @@
 import { SwapRoute } from "@uniswap/smart-order-router";
 import Redis from "ioredis";
 import { UserEntity } from "../utils/types";
+import { EstimateTrade } from "../../demo";
 
 export class RedisService {
   private readonly cache: Redis;
@@ -41,4 +42,8 @@ export function isOrder(tx: Order | any): tx is Order {
 
 export function isSwapRoute(tx: SwapRoute | any): tx is SwapRoute {
   return (tx as SwapRoute).route !== undefined;
+}
+
+export function isTrade(tx: EstimateTrade | any): tx is EstimateTrade {
+  return (tx as EstimateTrade).swaps !== undefined;
 }

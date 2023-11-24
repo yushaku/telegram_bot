@@ -1,8 +1,8 @@
-import { ChainId } from '@uniswap/sdk-core';
-import { INFURA_KEY } from './constants';
-import { NODE_ENV, chainId } from './token';
-import { JsonRpcProvider } from '@ethersproject/providers';
-import Web3 from 'web3';
+import { ChainId } from "@uniswap/sdk-core";
+import { INFURA_KEY } from "./constants";
+import { NODE_ENV, chainId } from "./token";
+import { JsonRpcProvider } from "@ethersproject/providers";
+import Web3 from "web3";
 
 export const RPC_URLS = {
   [ChainId.MAINNET]: `https://mainnet.infura.io/v3/${INFURA_KEY}`,
@@ -19,19 +19,39 @@ export const RPC_URLS = {
 };
 
 export function getProvider() {
-  if (NODE_ENV === 'LOCAL') {
-    return new JsonRpcProvider({ url: 'http://127.0.0.1:8545' });
+  if (NODE_ENV === "LOCAL") {
+    return new JsonRpcProvider({ url: "http://127.0.0.1:8545" });
   }
 
   return new JsonRpcProvider(RPC_URLS[chainId]);
 }
 
 export function getWeb3Provider() {
-  if (NODE_ENV === 'LOCAL') {
-    return new Web3('http://127.0.0.1:8545');
+  if (NODE_ENV === "LOCAL") {
+    return new Web3("http://127.0.0.1:8545");
   }
 
   return new Web3(RPC_URLS[chainId]);
+}
+
+export class Provider {
+  private static instance: JsonRpcProvider;
+
+  private constructor() {}
+
+  public static getInstance(): JsonRpcProvider {
+    if (!Provider.instance) {
+      if (NODE_ENV === "LOCAL") {
+        Provider.instance = new JsonRpcProvider({
+          url: "http://127.0.0.1:8545",
+        });
+      } else {
+        Provider.instance = new JsonRpcProvider(RPC_URLS[chainId]);
+      }
+    }
+
+    return Provider.instance;
+  }
 }
 
 // const providerFactory = (chainId: SupportedInterfaceChain, i = 0) => new AppStaticJsonRpcProvider(chainId, RPC_URLS[chainId][i] as string);

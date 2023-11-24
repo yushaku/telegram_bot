@@ -1,0 +1,122 @@
+{
+  "swaps": [
+    {
+      "inputAmount": {
+        "numerator": [
+          166199296,
+          723291154,
+          8
+        ],
+        "denominator": [
+          1
+        ],
+        "currency": {
+          "chainId": 5,
+          "decimals": 18,
+          "symbol": "WETH",
+          "name": "Wrapped Ether",
+          "isNative": false,
+          "isToken": true,
+          "address": "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6"
+        },
+        "decimalScale": [
+          660865024,
+          931322574
+        ]
+      },
+      "outputAmount": {
+        "numerator": [
+          807932008,
+          126307858,
+          99
+        ],
+        "denominator": [
+          1
+        ],
+        "currency": {
+          "chainId": 5,
+          "decimals": 18,
+          "isNative": false,
+          "isToken": true,
+          "address": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"
+        },
+        "decimalScale": [
+          660865024,
+          931322574
+        ]
+      },
+      "route": {
+        "_midPrice": null,
+        "pools": [
+          {
+            "token0": {
+              "chainId": 5,
+              "decimals": 18,
+              "isNative": false,
+              "isToken": true,
+              "address": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"
+            },
+            "token1": {
+              "chainId": 5,
+              "decimals": 18,
+              "symbol": "WETH",
+              "name": "Wrapped Ether",
+              "isNative": false,
+              "isToken": true,
+              "address": "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6"
+            },
+            "fee": 3000,
+            "sqrtRatioX96": [
+              175899438,
+              2996295,
+              949449688,
+              18
+            ],
+            "liquidity": [
+              967818528,
+              770106714,
+              14045
+            ],
+            "tickCurrent": -24413,
+            "tickDataProvider": {}
+          }
+        ],
+        "tokenPath": [
+          {
+            "chainId": 5,
+            "decimals": 18,
+            "symbol": "WETH",
+            "name": "Wrapped Ether",
+            "isNative": false,
+            "isToken": true,
+            "address": "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6"
+          },
+          {
+            "chainId": 5,
+            "decimals": 18,
+            "isNative": false,
+            "isToken": true,
+            "address": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"
+          }
+        ],
+        "input": {
+          "chainId": 5,
+          "decimals": 18,
+          "symbol": "WETH",
+          "name": "Wrapped Ether",
+          "isNative": false,
+          "isToken": true,
+          "address": "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6"
+        },
+        "output": {
+          "chainId": 5,
+          "decimals": 18,
+          "isNative": false,
+          "isToken": true,
+          "address": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"
+        }
+      }
+    }
+  ],
+  "tradeType": 0
+}

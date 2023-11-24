@@ -108,9 +108,11 @@ export const tokenDetail = ({
   supply,
   marketcap,
   price,
+  balance,
 }: {
   address: string;
   name: string;
+  balance: number | string;
   symbol: string;
   decimals: number;
   supply: number;
@@ -120,10 +122,11 @@ export const tokenDetail = ({
 🔬  ${name} (${symbol})  -  Chain: Etherscan
 
 Links: [Etherscan](https://etherscan.io/token/${address})  -  📈Chart
-Supply: ${supply} ⬩ Decimals: ${decimals}
-Marketcap: $${marketcap}
-Price: $${price}
-Address: ${address}
+Your ${name}'s balance: \`${balance}\` ${symbol}
+Supply: \`${supply}\` ⬩ Decimals: \`${decimals}\`
+Marketcap: \`$${marketcap}\`
+Price: $\`${price}\`
+Address: \`${address}\`
 
 🍯 Honeypot Check: Doesnt seem like a [honeypot](https://honeypot.is/ethereum?address=${address})
 `;
@@ -191,6 +194,6 @@ export const reportMsg = ({
 }) => `
 Your transaction is ${status} 🚀
 Hash: \`${shortenAddress(hash, 12)}\`
-Gas Fee: \`${formatUnits(gas ?? 0, "gwei")}\` gwei
+Gas Cost: \`${formatUnits(gas ?? 0, "gwei")}\` gwei
 View in [etherscan](${urlScan()}/tx/${hash})
 `;

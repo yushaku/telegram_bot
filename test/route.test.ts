@@ -7,8 +7,9 @@ import { toReadableAmount } from "@/utils/utils";
 import { WETH9 } from "@uniswap/sdk-core";
 import { SwapRoute } from "@uniswap/smart-order-router";
 import { FeeAmount } from "@uniswap/v3-sdk";
-import { describe, expect, test } from "bun:test";
+import { beforeAll, describe, expect, test } from "bun:test";
 import { writeData } from "./helper";
+import { WrapToken } from "@/lib/WrapToken";
 
 const account = {
   address: "0xDCF14807Ca8a640aDf369655f9aD1443077bFBf2",
@@ -30,6 +31,12 @@ describe("Uni swap from token A to B", () => {
   let route: SwapRoute | null;
   const amount = 10;
 
+  beforeAll(async () => {
+    const weth = WETH9[chainId];
+    const eth = new WrapToken(weth.address, weth.name, weth.decimals, provider);
+    await eth.wrap(amount * 2, account.privateKey);
+  });
+
   test("Generate smart order router for swap", async () => {
     const result = await uniTrade.generateRoute({
       walletAddress: account.address,
@@ -39,6 +46,7 @@ describe("Uni swap from token A to B", () => {
       amount,
     });
 
+    writeData(result, "trade.json");
     console.log(result);
     expect(result).not.toBeNull();
     expect(result?.methodParameters).not.toBeNull();

@@ -1,14 +1,14 @@
 import { UniPools, UniRoute } from "@/uniswap";
 import { SWAP_ROUTER_ADDRESS } from "@/utils/constants";
 import { getProvider } from "@/utils/networks";
-import { chainId } from "@/utils/token";
+import { UNI, chainId } from "@/utils/token";
 import { isTransactionReceipt } from "@/utils/types";
 import { toReadableAmount } from "@/utils/utils";
 import { Currency, TradeType, WETH9 } from "@uniswap/sdk-core";
-import { USDC_GOERLI } from "@uniswap/smart-order-router";
 import { FeeAmount, Trade } from "@uniswap/v3-sdk";
-import { describe, expect, test } from "bun:test";
+import { beforeAll, describe, expect, test } from "bun:test";
 import { writeData } from "./helper";
+import { WrapToken } from "@/lib/WrapToken";
 
 const account = {
   address: "0xDCF14807Ca8a640aDf369655f9aD1443077bFBf2",
@@ -18,7 +18,7 @@ const account = {
 
 const tokens = {
   in: WETH9[chainId],
-  out: USDC_GOERLI,
+  out: UNI,
   poolFee: FeeAmount.MEDIUM,
 };
 
@@ -27,8 +27,14 @@ const pool = new UniPools(provider);
 const amount = 10;
 
 describe("Uni swap from token A to B", () => {
-  const uniTrade = new UniRoute(provider);
+  const uniTrade = new UniRoute();
   let trade: Trade<Currency, Currency, TradeType> | undefined;
+
+  beforeAll(async () => {
+    const weth = WETH9[chainId];
+    const eth = new WrapToken(weth.address, weth.name, weth.decimals, provider);
+    await eth.wrap(amount * 2, account.privateKey);
+  });
 
   test("Get Pools", async () => {
     const result = await pool.poolV3(tokens.in, tokens.out);
@@ -42,7 +48,7 @@ describe("Uni swap from token A to B", () => {
   });
 
   test("Generate trade", async () => {
-    const result = await uniTrade.createTrade({
+    const result = await uniTrade.generateTrade({
       amount,
       fee: tokens.poolFee,
       tokenB: tokens.out,
@@ -51,6 +57,7 @@ describe("Uni swap from token A to B", () => {
     });
 
     console.log(result?.swaps);
+    writeData(result, "trade.json");
     expect(result?.tradeType).toBe(TradeType.EXACT_INPUT);
     expect(result?.swaps).toBeArray();
     expect(result?.swaps.at(0)?.inputAmount).not.toBeNil();
@@ -67,7 +74,7 @@ describe("Uni swap from token A to B", () => {
       account,
     });
 
-    writeData(result);
+    writeData(result, "tradeReceive.json");
     expect(typeof result).not.toBe("string");
     if (!isTransactionReceipt(result)) return;
 

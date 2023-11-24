@@ -3,7 +3,6 @@ import { USDC_GOERLI } from "@uniswap/smart-order-router";
 import { FeeAmount } from "@uniswap/v3-sdk";
 import { describe, expect, test } from "bun:test";
 import { WrapToken } from "lib/WrapToken";
-import { SWAP_ROUTER_ADDRESS } from "utils/constants";
 import { getProvider } from "utils/networks";
 import { chainId } from "utils/token";
 
