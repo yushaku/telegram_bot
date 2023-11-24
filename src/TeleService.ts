@@ -1,38 +1,38 @@
-import TelegramBot, { User } from "node-telegram-bot-api";
-import { v4 as uuidv4 } from "uuid";
+import { WrapToken } from "@/lib/WrapToken";
+import { getBalance, getBlock } from "@/lib/transaction";
+import { UniswapService } from "@/uniswap";
+import { getProvider } from "@/utils/networks";
 import {
   esstimateMsg,
   esstimateSwap,
   tokenDetail,
   walletDetail,
   walletMsg,
-} from "utils/replyMessage";
+} from "@/utils/replyMessage";
 import {
-  parseKey,
-  createAccount,
+  BUY_LIMIT,
+  BUY_TOKEN,
+  CLOSE,
+  INIT_POOL,
+  SELL_LIMIT,
+  SELL_TOKEN,
+} from "@/utils/replyTopic";
+import { UNI, WETH, chainId, isWETH } from "@/utils/token";
+import { Account, isTransaction } from "@/utils/types";
+import {
   bigintToNumber,
+  createAccount,
+  parseKey,
   shortenAddress,
   shortenAmount,
   toReadableAmount,
-} from "utils/utils";
-import { Account, isTransaction } from "utils/types";
-import { UNI, WETH, chainId, isWETH } from "utils/token";
-import { Token, WETH9 } from "@uniswap/sdk-core";
-import { UniswapService } from "uniswap";
-import { RedisService, isOrder, isSwapRoute } from "lib/RedisService";
-import {
-  INIT_POOL,
-  CLOSE,
-  BUY_TOKEN,
-  SELL_TOKEN,
-  BUY_LIMIT,
-  SELL_LIMIT,
-} from "utils/replyTopic";
-import { getProvider } from "utils/networks";
+} from "@/utils/utils";
 import { JsonRpcProvider } from "@ethersproject/providers";
-import { WrapToken } from "lib/WrapToken";
-import { getBalance, getBlock } from "lib/transaction";
+import { Token, WETH9 } from "@uniswap/sdk-core";
 import { SwapRoute } from "@uniswap/smart-order-router";
+import { RedisService, isOrder, isSwapRoute } from "lib/RedisService";
+import TelegramBot, { User } from "node-telegram-bot-api";
+import { v4 as uuidv4 } from "uuid";
 
 export class TeleService {
   private provider: JsonRpcProvider;
@@ -347,7 +347,7 @@ export class TeleService {
     if (!acc) return { text: "Account not found", buttons: {} };
 
     if (isWETH(tokenAddress)) {
-      const weth = new WrapToken(tokenAddress, "WETH", 18);
+      const weth = new WrapToken(tokenAddress, "WETH", 18, this.provider);
       const gas = await weth.estimateGas("deposit", amount);
       const { balance } = await getBalance(acc);
 
@@ -457,7 +457,8 @@ export class TeleService {
       }
 
       if (isOrder(data)) {
-        const weth = new WrapToken(data.tokenAddress, "WETH", 18);
+        const address = data.tokenAddress;
+        const weth = new WrapToken(address, "WETH", 18, this.provider);
         return weth.wrap(data.amount, account.privateKey);
       }
     } catch (error) {

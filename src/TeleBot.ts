@@ -1,7 +1,6 @@
 import { TeleService } from "TeleService";
 import { isAddress } from "ethers/lib/utils";
 import TelegramBot from "node-telegram-bot-api";
-import { OneInchService } from "oneInch";
 import {
   START_BUTTONS,
   TOKENS_BUTTONS,
@@ -26,12 +25,10 @@ import { shortenAddress } from "utils/utils";
 export class TeleBot {
   private readonly bot: TelegramBot;
   private teleService: TeleService;
-  private oneInch: OneInchService;
 
   constructor(teleId: string) {
     this.bot = new TelegramBot(teleId, { polling: true });
     this.teleService = new TeleService();
-    this.oneInch = new OneInchService();
   }
 
   init() {
@@ -65,15 +62,6 @@ export class TeleBot {
     this.bot.onText(/\/test/, async (msg) => {
       if (!msg.from) return;
       const sent = await this.bot.sendMessage(msg.chat.id, "Processing...");
-
-      const { text, buttons } = await this.oneInch.test();
-
-      await this.bot.editMessageText(text, {
-        message_id: sent.message_id,
-        chat_id: sent.chat.id,
-        parse_mode: "Markdown",
-        ...buttons,
-      });
     });
 
     this.bot.onText(/\/trade/, async (msg) => {
@@ -363,7 +351,6 @@ export class TeleBot {
         // TODO: swap now
         case "swap_now": {
           const sent = await this.bot.sendMessage(chatId, "Swapping...");
-          this.oneInch.swap();
           break;
         }
 

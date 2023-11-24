@@ -1,4 +1,9 @@
-import { CurrencyAmount, Token } from "@uniswap/sdk-core";
+import {
+  CurrencyAmount,
+  Ether,
+  NativeCurrency,
+  Token,
+} from "@uniswap/sdk-core";
 import uniswapV2poolABI from "abis/uniV2pool.json";
 import { Pair, Route as RouteV2 } from "@uniswap/v2-sdk";
 import IUniswapV3PoolABI from "@uniswap/v3-core/artifacts/contracts/interfaces/IUniswapV3Pool.sol/IUniswapV3Pool.json";

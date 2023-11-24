@@ -2,7 +2,7 @@
 // check .prettierignore
 
 import { Token, ChainId, WETH9 } from "@uniswap/sdk-core";
-import { NATIVE_CURRENCY, USDC_GOERLI, USDC_MAINNET } from "@uniswap/smart-order-router";
+import { ExtendedEther, USDC_GOERLI, USDC_MAINNET } from "@uniswap/smart-order-router";
 import { z } from "zod";
 
 const CHAIN = Object.values(ChainId).filter(value => typeof value !== 'number') as string[];
@@ -39,13 +39,14 @@ export const MAIN_UNI  = new Token(ChainId.MAINNET, "0x1f9840a85d5aF5bf1D1762F92
 // export const ZKSYNC_WEAV = new Token(SKSYNC, "0xA4c011A4C65b01198a2FF314B7557bB0C798BFB8", 18)
 export const GOERLI_WETH = new Token(ChainId.GOERLI, "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6", 18);
 
-export const NATIVE_TOKEN = NATIVE_CURRENCY[chainId]
 export const WETH = NODE_ENV === 'GOERLI' ? GOERLI_WETH : MAIN_WETH 
 export const USDC = NODE_ENV === 'GOERLI' ? USDC_GOERLI : USDC_MAINNET 
 export const UNI  = new Token(chainId, "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984", 18) 
 export const ONEINCH = new Token(chainId, "0x111111111117dC0aa78b770fA6A738034120C302", 18);
 
-
 export function isWETH(address: string): boolean {
   return address === WETH9[chainId].address
 }
+
+export const NATIVE_TOKEN = ExtendedEther.onChain(chainId) 
+

@@ -180,7 +180,7 @@ export function isPolygon(
   return chainId === ChainId.POLYGON_MUMBAI || chainId === ChainId.POLYGON;
 }
 
-function getPolygonNativeCurrency(chainId: number) {
+export function getPolygonNativeCurrency(chainId: number) {
   switch (chainId) {
     case ChainId.POLYGON:
       return MATIC_POLYGON;

@@ -1,4 +1,7 @@
-import { TransactionResponse } from "@ethersproject/providers";
+import {
+  TransactionReceipt,
+  TransactionResponse,
+} from "@ethersproject/providers";
 
 export interface Account {
   privateKey: string;
@@ -18,4 +21,10 @@ export function isTransaction(
   tx: TransactionResponse | any,
 ): tx is TransactionResponse {
   return (tx as TransactionResponse).hash !== undefined;
+}
+
+export function isTransactionReceipt(
+  tx: TransactionReceipt | any,
+): tx is TransactionReceipt {
+  return (tx as TransactionReceipt).transactionHash !== undefined;
 }
