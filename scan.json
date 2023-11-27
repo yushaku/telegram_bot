@@ -1,0 +1,488 @@
+{
+  "address": "0xbc2c6cd5013585ac720160efcb1feced30837177",
+  "ETH": {
+    "price": {
+      "rate": 2049.7488882378043,
+      "diff": -2.02,
+      "diff7d": 1.88,
+      "ts": 1701074520,
+      "marketCapUsd": 246471885644.9972,
+      "availableSupply": 120244917.34540823,
+      "volume24h": 9325963653.848312,
+      "volDiff1": 48.50165321736014,
+      "volDiff7": -4.3604234734718545,
+      "volDiff30": 67.27047897164084,
+      "diff30d": 15.26119759162286
+    },
+    "balance": 2.81380691126e-7,
+    "rawBalance": "281380691126"
+  },
+  "contractInfo": {
+    "creatorAddress": null,
+    "transactionHash": "0xfdeb891412265750a6393baec542bdc23d83a1ea9637ea3d78a4fdd832f6f4e4",
+    "timestamp": 1690207175
+  },
+  "tokens": [
+    {
+      "tokenInfo": {
+        "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "name": "USD Coin",
+        "decimals": "6",
+        "symbol": "USDC",
+        "totalSupply": "22606823342230407",
+        "owner": "0xfcb19e6a322b27c06842a71e8c725399f049ae3a",
+        "lastUpdated": 1701074681,
+        "issuancesCount": 409069,
+        "price": {
+          "rate": 0.9999592797667292,
+          "diff": 0.01,
+          "diff7d": -0.01,
+          "ts": 1701074340,
+          "marketCapUsd": 24612135547.177727,
+          "availableSupply": 24613137799.890465,
+          "volume24h": 4053052909.423892,
+          "volDiff1": 63.25218250593301,
+          "volDiff7": -7.427956103704986,
+          "volDiff30": 53.79565962482911,
+          "diff30d": -0.009509540874603317,
+          "bid": 1,
+          "currency": "USD"
+        },
+        "holdersCount": 1855378,
+        "image": "/images/usdc.png",
+        "website": "https://www.circle.com/en/usdc",
+        "ethTransfersCount": 0,
+        "publicTags": ["Stablecoins"]
+      },
+      "balance": 1,
+      "rawBalance": "1"
+    },
+    {
+      "tokenInfo": {
+        "address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "name": "WETH",
+        "decimals": "18",
+        "symbol": "WETH",
+        "totalSupply": "3057606179699854653691859",
+        "owner": "",
+        "lastUpdated": 1701074692,
+        "issuancesCount": 70861304,
+        "price": {
+          "rate": 2048.279195032431,
+          "diff": -2.08,
+          "diff7d": 1.54,
+          "ts": 1701073980,
+          "marketCapUsd": 0,
+          "availableSupply": 0,
+          "volume24h": 879944155.748196,
+          "volDiff1": 48.22549453408814,
+          "volDiff7": -16.654399762197784,
+          "volDiff30": 69.63931338368036,
+          "diff30d": 14.71514542307122,
+          "bid": 2062.52,
+          "currency": "USD"
+        },
+        "holdersCount": 932211,
+        "website": "https://weth.io",
+        "image": "/images/WETHc02aaa39.png",
+        "ethTransfersCount": 5345295,
+        "publicTags": ["Tokenized", "ETH"]
+      },
+      "balance": 465860445848785700000,
+      "rawBalance": "465860445848785731915"
+    },
+    {
+      "tokenInfo": {
+        "address": "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984",
+        "decimals": "18",
+        "name": "Uniswap",
+        "owner": "",
+        "symbol": "UNI",
+        "totalSupply": "1000000000000000000000000000",
+        "lastUpdated": 1701073977,
+        "issuancesCount": 1,
+        "price": {
+          "rate": 6.059903545481929,
+          "diff": -1.7,
+          "diff7d": 15.59,
+          "ts": 1701074280,
+          "marketCapUsd": 3564356581.9074645,
+          "availableSupply": 588187015.71,
+          "volume24h": 174142013.1224858,
+          "volDiff1": 41.96477782549232,
+          "volDiff7": 62.13564264136545,
+          "volDiff30": 173.58192970382197,
+          "diff30d": 48.42278595926609,
+          "bid": 6.13,
+          "currency": "USD"
+        },
+        "holdersCount": 373186,
+        "website": "https://uniswap.org",
+        "image": "/images/UNI1f9840a8.png",
+        "ethTransfersCount": 0,
+        "publicTags": [
+          "DEX",
+          "Exchange Token",
+          "DeFi",
+          "Governance",
+          "Yield Farming",
+          "Automated Market Maker"
+        ]
+      },
+      "balance": 3.8381994007707433e21,
+      "rawBalance": "3838199400770743335733"
+    },
+    {
+      "tokenInfo": {
+        "address": "0x6982508145454ce325ddbe47a25d4ec3d2311933",
+        "decimals": "18",
+        "name": "Pepe",
+        "owner": "0x0000000000000000000000000000000000000000",
+        "price": {
+          "rate": 0.0000010867848045038743,
+          "diff": -7.42,
+          "diff7d": -9.66,
+          "ts": 1701074280,
+          "marketCapUsd": 453712368.7480128,
+          "availableSupply": 417481332889206.1,
+          "volume24h": 79871660.18022315,
+          "volDiff1": 4.361382014725066,
+          "volDiff7": -21.724508410151813,
+          "volDiff30": 19.397237256274423,
+          "diff30d": -8.551882578985442,
+          "bid": 0.0000011,
+          "currency": "USD"
+        },
+        "symbol": "PEPE",
+        "totalSupply": "420689899999994793099999999997400",
+        "issuancesCount": 13,
+        "lastUpdated": 1701073208,
+        "holdersCount": 148763,
+        "website": "https://www.pepe.vip",
+        "ethTransfersCount": 0
+      },
+      "balance": 1.887580438718979e29,
+      "rawBalance": "188758043871897908559619245843"
+    },
+    {
+      "tokenInfo": {
+        "address": "0x2dff88a56767223a5529ea5960da7a3f5f766406",
+        "decimals": "18",
+        "name": "SPACE ID",
+        "symbol": "ID",
+        "totalSupply": "1796892622178437066219192999",
+        "price": {
+          "rate": 0.24637870560548833,
+          "diff": -3.75,
+          "diff7d": -4.45,
+          "ts": 1701074340,
+          "marketCapUsd": 106067543.63227361,
+          "availableSupply": 430506132.3039553,
+          "volume24h": 14062751.17616603,
+          "volDiff1": 0.8000999608541122,
+          "volDiff7": -42.68312070086674,
+          "volDiff30": 134.67424062627288,
+          "diff30d": 14.995485674893814,
+          "bid": 0.252049,
+          "currency": "USD"
+        },
+        "issuancesCount": 2,
+        "lastUpdated": 1701072752,
+        "holdersCount": 1483,
+        "website": "https://space.id",
+        "ethTransfersCount": 0
+      },
+      "balance": 5.153648016891402e21,
+      "rawBalance": "5153648016891402178709"
+    },
+    {
+      "tokenInfo": {
+        "address": "0x5a98fcbea516cf06857215779fd812ca3bef1b32",
+        "decimals": "18",
+        "name": "Lido DAO",
+        "symbol": "LDO",
+        "totalSupply": "1000000000000000000000000000",
+        "lastUpdated": 1701073859,
+        "issuancesCount": 5,
+        "price": {
+          "rate": 2.3951719156947164,
+          "diff": -4.48,
+          "diff7d": -2.52,
+          "ts": 1701074280,
+          "marketCapUsd": 2131803961.0927222,
+          "availableSupply": 890042149.8447618,
+          "volume24h": 87621183.02376388,
+          "volDiff1": 14.92931210170643,
+          "volDiff7": -26.12281711127983,
+          "volDiff30": 204.83073700796683,
+          "diff30d": 31.759084143407335,
+          "bid": 2.42,
+          "currency": "USD"
+        },
+        "holdersCount": 42443,
+        "website": "https://stake.lido.fi",
+        "image": "/images/LDO5a98fcbe.png",
+        "ethTransfersCount": 0,
+        "publicTags": ["DeFi"]
+      },
+      "balance": 1,
+      "rawBalance": "1"
+    },
+    {
+      "tokenInfo": {
+        "address": "0xd533a949740bb3306d119cc777fa900ba034cd52",
+        "name": "Curve DAO",
+        "decimals": "18",
+        "symbol": "CRV",
+        "totalSupply": "2042490316464967552858246362",
+        "owner": "",
+        "lastUpdated": 1701073866,
+        "issuancesCount": 499256,
+        "price": {
+          "rate": 0.568773570702639,
+          "diff": -5.92,
+          "diff7d": -1.89,
+          "ts": 1701074340,
+          "marketCapUsd": 525695151.3092126,
+          "availableSupply": 924260863,
+          "volume24h": 58569773.41306119,
+          "volDiff1": 16.91094560696706,
+          "volDiff7": -22.097130559608573,
+          "volDiff30": 145.82879817669462,
+          "diff30d": 19.83922529349222,
+          "bid": 0.572401,
+          "currency": "USD"
+        },
+        "holdersCount": 81864,
+        "image": "/images/CRVd533a949.png",
+        "website": "https://www.curve.fi/",
+        "ethTransfersCount": 0,
+        "publicTags": [
+          "DeFi",
+          "Governance",
+          "Yield Farming",
+          "Automated Market Maker",
+          "DEX"
+        ]
+      },
+      "balance": 9.013898612104014e22,
+      "rawBalance": "90138986121040129782502"
+    },
+    {
+      "tokenInfo": {
+        "address": "0x514910771af9ca656af840dff83e8264ecf986ca",
+        "name": "Chainlink",
+        "decimals": "18",
+        "symbol": "LINK",
+        "totalSupply": "1000000000000000000000000000",
+        "owner": "",
+        "lastUpdated": 1701073434,
+        "issuancesCount": 0,
+        "price": {
+          "rate": 14.496296203073063,
+          "diff": -4.5,
+          "diff7d": -4.2,
+          "ts": 1701074280,
+          "marketCapUsd": 8072262112.356079,
+          "availableSupply": 556849970.4527867,
+          "volume24h": 597472243.5125164,
+          "volDiff1": 35.65309883084237,
+          "volDiff7": -14.936636511165872,
+          "volDiff30": 87.79725666128414,
+          "diff30d": 28.893878597620358,
+          "bid": 14.73,
+          "currency": "USD"
+        },
+        "holdersCount": 698372,
+        "image": "/images/chainlink.jpg",
+        "description": "The Chainlink network provides reliable tamper-proof inputs and outputs for complex smart contracts on any blockchain.",
+        "website": "https://chain.link/",
+        "ethTransfersCount": 0,
+        "publicTags": ["DeFi", "Oracle", "Polkadot"]
+      },
+      "balance": 1,
+      "rawBalance": "1"
+    },
+    {
+      "tokenInfo": {
+        "address": "0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2",
+        "name": "Maker",
+        "decimals": "18",
+        "symbol": "MKR",
+        "totalSupply": "977631036950888222010062",
+        "owner": "0x0000000000000000000000000000000000000000",
+        "lastUpdated": 1701074560,
+        "issuancesCount": 2524,
+        "price": {
+          "rate": 1507.6786474296675,
+          "diff": 3.17,
+          "diff7d": 8.88,
+          "ts": 1701074280,
+          "marketCapUsd": 1473953439.4753811,
+          "availableSupply": 977631.03695089,
+          "volume24h": 97368015.05371755,
+          "volDiff1": 45.22195663462881,
+          "volDiff7": -4.213157219346968,
+          "volDiff30": 20.130119240083744,
+          "diff30d": 6.168372098645179,
+          "bid": 1475.27,
+          "currency": "USD"
+        },
+        "holdersCount": 97492,
+        "description": "Maker Token for Makerdao governance and fees.\n\nhttp://makerdao.com/\nhttps://twitter.com/makerdao\nhttps://reddit.com/r/makerdao\nhttps://chat.makerdao.com for questions/discussion",
+        "image": "/images/mkr.png",
+        "website": "https://makerdao.com/",
+        "ethTransfersCount": 0,
+        "publicTags": ["DeFi", "Governance", "Lending;Borrowing"]
+      },
+      "balance": 237077239752542600000,
+      "rawBalance": "237077239752542573196"
+    },
+    {
+      "tokenInfo": {
+        "address": "0x3718539f2c918e3ffea88336a020c417e881cde8",
+        "decimals": "18",
+        "lastUpdated": 1693360362,
+        "name": "Pepe Coin",
+        "price": false,
+        "symbol": "PEPECOIN",
+        "totalSupply": "420690000000000000000000000000000",
+        "issuancesCount": 1,
+        "holdersCount": 75,
+        "ethTransfersCount": 0
+      },
+      "balance": 1.712421488091884e30,
+      "rawBalance": "1712421488091883926422111290518"
+    },
+    {
+      "tokenInfo": {
+        "address": "0x01eeffcd9a10266ed00946121df097eed173b43d",
+        "decimals": "18",
+        "name": "XDoge",
+        "owner": "0x0000000000000000000000000000000000000000",
+        "price": {
+          "rate": 4.46153921786741e-10,
+          "diff": 1.15,
+          "diff7d": -4.67,
+          "ts": 1701073980,
+          "marketCapUsd": 0,
+          "availableSupply": 0,
+          "volume24h": 622.14888031,
+          "volDiff1": -43.508116391135374,
+          "volDiff7": -53.439707279928555,
+          "volDiff30": 171.00804766571144,
+          "bid": 4.50029e-10,
+          "currency": "USD"
+        },
+        "symbol": "XD",
+        "totalSupply": "420690000000000000000000000000000",
+        "issuancesCount": 1,
+        "lastUpdated": 1701061012,
+        "holdersCount": 1578,
+        "website": "https://www.xdogecoin.net",
+        "image": "/images/XD01eeffcd.png",
+        "ethTransfersCount": 3
+      },
+      "balance": 2.300999999e27,
+      "rawBalance": "2300999999000000000000000000"
+    },
+    {
+      "tokenInfo": {
+        "address": "0x57b9d10157f66d8c00a815b5e289a152dedbe7ed",
+        "decimals": "6",
+        "name": "环球股",
+        "symbol": "HQG",
+        "totalSupply": "10000000000000000",
+        "lastUpdated": 1700941239,
+        "issuancesCount": 0,
+        "price": false,
+        "holdersCount": 84129,
+        "ethTransfersCount": 0
+      },
+      "balance": 2,
+      "rawBalance": "2"
+    },
+    {
+      "tokenInfo": {
+        "address": "0xc882eb052eab2db37088776c0a7a24674f790fe1",
+        "decimals": "18",
+        "lastUpdated": 1696341876,
+        "name": "Casino Token",
+        "owner": "0x000000000000000000000000000000000000dead",
+        "price": false,
+        "symbol": "CST",
+        "totalSupply": "20000000000000000000000000",
+        "issuancesCount": 1,
+        "holdersCount": 318,
+        "ethTransfersCount": 0
+      },
+      "balance": 10000000000000000000,
+      "rawBalance": "10000000000000000000"
+    },
+    {
+      "tokenInfo": {
+        "address": "0xb8ac53afccebc44aac33d0c30e2ae0783e7fde5f",
+        "decimals": "6",
+        "lastUpdated": 1696715076,
+        "name": "# get-usdc.net",
+        "price": false,
+        "symbol": "Visit https://get-usdc.net to claim rewards",
+        "totalSupply": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
+        "issuancesCount": 0,
+        "holdersCount": 19986,
+        "ethTransfersCount": 0
+      },
+      "balance": 3999990000,
+      "rawBalance": "3999990000"
+    },
+    {
+      "tokenInfo": {
+        "address": "0x690874fc6ffcb569da648199fc02564098832420",
+        "decimals": "9",
+        "lastUpdated": 1700724554,
+        "name": "69420",
+        "owner": "0x0000000000000000000000000000000000000000",
+        "price": false,
+        "symbol": "69420",
+        "totalSupply": "69420000000000000000",
+        "issuancesCount": 1,
+        "holdersCount": 247,
+        "ethTransfersCount": 1
+      },
+      "balance": 29700000000000000,
+      "rawBalance": "29700000000000000"
+    },
+    {
+      "tokenInfo": {
+        "address": "0xb131f4a55907b10d1f0a50d8ab8fa09ec342cd74",
+        "decimals": "18",
+        "lastUpdated": 1701073990,
+        "name": "Memecoin",
+        "owner": "0x06b1ba8c14d3dd9486012d2bc962a5a58ec6eaa7",
+        "price": {
+          "rate": 0.027240716642340228,
+          "diff": -14.19,
+          "diff7d": -7.46,
+          "ts": 1701074280,
+          "marketCapUsd": 239650204.66098815,
+          "availableSupply": 8797500000,
+          "volume24h": 194863601.44387746,
+          "volDiff1": -29.918378766756476,
+          "bid": 0.02948039,
+          "volDiff7": -55.610180684921104,
+          "currency": "USD"
+        },
+        "symbol": "MEME",
+        "totalSupply": "69000000000000000000000000000",
+        "issuancesCount": 1,
+        "holdersCount": 8418,
+        "website": "https://www.memecoin.org",
+        "image": "/images/MEMEb131f4a5.png",
+        "ethTransfersCount": 0
+      },
+      "balance": 7.813667049187278e23,
+      "rawBalance": "781366704918727907451696"
+    }
+  ]
+}
+

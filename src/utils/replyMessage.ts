@@ -1,7 +1,10 @@
-import { BigNumber } from "ethers";
+import { BigNumber, Transaction } from "ethers";
 import { urlScan } from "./contract";
 import { formatUnits } from "ethers/lib/utils";
-import { shortenAddress } from "./utils";
+import { fromReadableAmount, shortenAddress, toReadableAmount } from "./utils";
+import { Watchlist } from "@/utils/types";
+import { ScanWallet } from "@/market/types";
+import { RPC_URLS } from "./networks";
 
 export const START_MESSAGE = `
 What would you like to do today?
@@ -196,4 +199,17 @@ Your transaction is ${status} 🚀
 Hash: \`${shortenAddress(hash, 12)}\`
 Gas Cost: \`${formatUnits(gas ?? 0, "gwei")}\` gwei
 View in [etherscan](${urlScan()}/tx/${hash})
+`;
+
+export const scanWalletmsg = (data: ScanWallet) => `
+Scan wallet: \`${data.address}\`
+Balance: \`${data.ETH.balance / 10 ** 18}\` ETH
+checkout: [Debank](https://debank.com/profile/${data.address}?chain=eth)
+`;
+
+export const whaleActionMsg = ({ from, to, value, hash }: any) => `
+Whale action: 😎\`${shortenAddress(
+  from,
+)}\` to \`${to}\ with value \`${toReadableAmount(value)}\ 🚨
+Check: [Etherscan](${urlScan()}/tx/${hash})
 `;

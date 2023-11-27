@@ -15,3 +15,9 @@ export const SELL_LIMIT = "sell_limit";
 
 export const CLOSE = "close";
 export const MENU = "menu";
+
+export const WATCH_WALLET_ADD = "watch_wallet_add";
+
+export const NO_CALLBACK = "NO_CALLBACK";
+
+export const REDIS_WHALE_WALLET = "redis_whale_wallet";

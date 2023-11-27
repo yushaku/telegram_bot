@@ -9,9 +9,19 @@ export interface Account {
   address: string;
 }
 
+export type Watchlist = { address: string; name: string };
+export type WhaleList = {
+  [key: string]: {
+    subscribe: {
+      [address: string]: number | string;
+    };
+  };
+};
+
 export type UserEntity = {
   name: string;
   accounts: Account[];
+  watchList: Watchlist[];
   mainAccount: Account | null;
   slippage: number;
   maxGas: number;
@@ -28,3 +38,9 @@ export function isTransactionReceipt(
 ): tx is TransactionReceipt {
   return (tx as TransactionReceipt).transactionHash !== undefined;
 }
+
+export type EventWhaleWallet = {
+  type: "add" | "remove";
+  channelId: number;
+  wallet: string;
+};

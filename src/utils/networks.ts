@@ -18,12 +18,20 @@ export const RPC_URLS = {
   [ChainId.BASE]: `https://base-mainnet.infura.io/v3/${INFURA_KEY}`,
 };
 
+export const RPC_WS = {
+  [ChainId.MAINNET]: `wss://mainnet.infura.io/ws/v3/${INFURA_KEY}`,
+  [ChainId.GOERLI]: `wss://goerli.infura.io/ws/v3/${INFURA_KEY}`,
+  [ChainId.SEPOLIA]: `wss://sepolia.infura.io/ws/v3/${INFURA_KEY}`,
+  [ChainId.POLYGON]: `wss://polygon-mainnet.infura.io/ws/v3/${INFURA_KEY}`,
+  [ChainId.POLYGON_MUMBAI]: `wss://polygon-mumbai.infura.io/ws/v3/${INFURA_KEY}`,
+};
+
 export function getProvider() {
   if (NODE_ENV === "LOCAL") {
     return new JsonRpcProvider({ url: "http://127.0.0.1:8545" });
   }
 
-  return new JsonRpcProvider(RPC_URLS[chainId]);
+  return new JsonRpcProvider(RPC_URLS[chainId as keyof typeof RPC_URLS]);
 }
 
 export function getWeb3Provider() {
@@ -31,7 +39,7 @@ export function getWeb3Provider() {
     return new Web3("http://127.0.0.1:8545");
   }
 
-  return new Web3(RPC_URLS[chainId]);
+  return new Web3(RPC_URLS[chainId as keyof typeof RPC_URLS]);
 }
 
 export class Provider {
@@ -46,7 +54,9 @@ export class Provider {
           url: "http://127.0.0.1:8545",
         });
       } else {
-        Provider.instance = new JsonRpcProvider(RPC_URLS[chainId]);
+        Provider.instance = new JsonRpcProvider(
+          RPC_URLS[chainId as keyof typeof RPC_URLS],
+        );
       }
     }
 

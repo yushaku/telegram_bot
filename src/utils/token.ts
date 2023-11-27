@@ -4,6 +4,7 @@
 import { Token, ChainId, WETH9 } from "@uniswap/sdk-core";
 import { ExtendedEther, USDC_GOERLI, USDC_MAINNET } from "@uniswap/smart-order-router";
 import { z } from "zod";
+import { RPC_URLS } from "./networks";
 
 const CHAIN = Object.values(ChainId).filter(value => typeof value !== 'number') as string[];
 
@@ -22,7 +23,7 @@ function enumToMap<T extends string | number>(enumObj: Record<string, T>) {
 }
 
 const chainList = enumToMap(ChainId);
-export const chainId = chainList.get(NODE_ENV) ?? ChainId.GOERLI
+export const chainId = chainList.get(NODE_ENV) ?? ChainId.GOERLI 
 
 
 export const MATIC_POLYGON = new Token(ChainId.POLYGON, '0x0000000000000000000000000000000000001010', 18, 'MATIC')

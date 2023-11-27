@@ -29,7 +29,7 @@ export const httpClient = ({
   key,
 }: {
   baseURL: string;
-  key: string;
+  key?: string;
 }) => {
   const client = axios.create({
     baseURL,

@@ -6,9 +6,9 @@ import JSBI from "jsbi";
 
 export function fromReadableAmount(
   amount: number,
-  decimals: number,
+  decimals: number | string = 18,
 ): BigNumber {
-  return ethers.utils.parseUnits(amount.toString(), decimals);
+  return ethers.utils.parseUnits(amount.toString(), Number(decimals));
 }
 
 export function calculateGasMargin(value: BigNumber): BigNumber {
@@ -36,9 +36,15 @@ function countDecimals(x: number) {
 
 export function toReadableAmount(
   rawAmount: number | BigNumber,
-  decimals = 18,
+  decimals: number | string = 18,
 ): string {
-  return formatUnits(rawAmount, decimals);
+  try {
+    return formatUnits(rawAmount, Number(decimals));
+  } catch (error) {
+    console.log(rawAmount);
+    console.error(error);
+    return "0";
+  }
 }
 
 export function displayTrade(trade: Trade<Token, Token, TradeType>): string {

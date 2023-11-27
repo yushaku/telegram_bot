@@ -1,52 +1,14 @@
-import { TransactionRequest } from "@ethersproject/providers";
-import {
-  Currency,
-  CurrencyAmount,
-  Percent,
-  Token,
-  TradeType,
-} from "@uniswap/sdk-core";
-import {
-  AlphaRouter,
-  SwapOptions,
-  SwapOptionsSwapRouter02,
-  SwapRoute,
-  SwapType,
-} from "@uniswap/smart-order-router";
-import {
-  FeeAmount,
-  MintOptions,
-  NonfungiblePositionManager,
-  Pool,
-  Position,
-  Route,
-  SwapQuoter,
-  SwapRouter,
-  Trade,
-  nearestUsableTick,
-} from "@uniswap/v3-sdk";
-import { BigNumber, Contract, Wallet, ethers } from "ethers";
-import JSBI from "jsbi";
+import { CurrencyAmount, Token } from "@uniswap/sdk-core";
+import { Pool, Position, nearestUsableTick } from "@uniswap/v3-sdk";
+import { ethers } from "ethers";
 import {
   NONFUNGIBLE_POSITION_MANAGER_ABI,
   NONFUNGIBLE_POSITION_MANAGER_CONTRACT_ADDRESS,
-  QUOTER_CONTRACT_ADDRESS,
-  SWAP_ROUTER_ADDRESS,
-  V2_SWAP_ROUTER_ADDRESS,
 } from "@/utils/constants";
-import { getProvider } from "utils/networks";
-import { chainId } from "utils/token";
 import { Account } from "utils/types";
-import ERC20_ABI from "../abis/erc20.json";
-import {
-  fromReadableAmount,
-  fromReadableToAmount,
-  toReadableAmount,
-} from "@/utils/utils";
-import { MAX_FEE_PER_GAS, MAX_PRIORITY_FEE_PER_GAS } from "@/utils/constants";
 import { getPoolInfoV3 } from "./pools";
 import { getQuote } from "./quote";
-import { PositionInfo, TransactionState } from "./types";
+import { PositionInfo } from "./types";
 import { UniRoute } from "./swap";
 import { Erc20Token } from "@/lib/Erc20token";
 

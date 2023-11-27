@@ -5,16 +5,20 @@ import { getProvider } from "@/utils/networks";
 import {
   esstimateMsg,
   esstimateSwap,
+  scanWalletmsg,
   tokenDetail,
   walletDetail,
   walletMsg,
 } from "@/utils/replyMessage";
 import {
+  WATCH_WALLET_ADD,
   BUY_LIMIT,
   BUY_TOKEN,
   CLOSE,
   SELL_LIMIT,
   SELL_TOKEN,
+  NO_CALLBACK,
+  REDIS_WHALE_WALLET,
 } from "@/utils/replyTopic";
 import { UNI, WETH, chainId, isWETH } from "@/utils/token";
 import { Account, isTransaction } from "@/utils/types";
@@ -115,6 +119,7 @@ export class TeleService {
     const defalt = {
       name: `${first_name} ${last_name}`,
       accounts: [],
+      watchList: [],
       mainAccount: null,
       slippage: 10,
       maxGas: 10,
@@ -148,6 +153,154 @@ export class TeleService {
       ethPrice: block.ethPrice,
       accounts: accounts,
     });
+  }
+
+  async watchList(userId: number) {
+    const user = await this.cache.getUser(userId);
+    const watchList = user.watchList ?? [];
+
+    const inline_keyboard = watchList.map((acc) => {
+      return [
+        { text: acc.name, callback_data: `watch_wallet ${acc.address}` },
+        {
+          text: shortenAddress(acc.address, 8),
+          callback_data: `watch_wallet ${acc.address}`,
+        },
+        {
+          text: "❌ Remove",
+          callback_data: `watch_wallet_remove ${acc.address}`,
+        },
+      ];
+    });
+
+    inline_keyboard.push([
+      { text: "➕ Add Wallet", callback_data: WATCH_WALLET_ADD },
+    ]);
+
+    return {
+      text: "📺 Your watch list:",
+      buttons: { inline_keyboard },
+    };
+  }
+
+  async detailWallet(address: string) {
+    const data = await this.market.scanWallet(address);
+
+    const list: { text: string; callback_data: string }[][] = [];
+    data.tokens.forEach((token) => {
+      const amount =
+        token.balance / 10 ** Number(token.tokenInfo.decimals ?? 18);
+      if (amount < 0.0001) return;
+      const usd =
+        typeof token.tokenInfo.price === "boolean"
+          ? 0
+          : token.tokenInfo.price.rate;
+      const total = usd * Number(amount);
+      const symbol = token.tokenInfo.symbol;
+
+      list.push([
+        { text: symbol, callback_data: token.tokenInfo.address },
+        { text: usd.toFixed(4), callback_data: NO_CALLBACK },
+        { text: amount.toFixed(4), callback_data: NO_CALLBACK },
+        { text: total.toFixed(4), callback_data: NO_CALLBACK },
+      ]);
+    });
+
+    return {
+      text: scanWalletmsg(data),
+      buttons: {
+        inline_keyboard: [
+          [
+            { text: "Token", callback_data: NO_CALLBACK },
+            { text: "Price", callback_data: NO_CALLBACK },
+            { text: "Amount", callback_data: NO_CALLBACK },
+            { text: "Total", callback_data: NO_CALLBACK },
+          ],
+          ...list,
+          [{ text: "❎ Close", callback_data: CLOSE }],
+        ],
+      },
+    };
+  }
+
+  async addWatchWallet({
+    userId,
+    address,
+    name,
+    channelId,
+  }: {
+    userId: number;
+    address: string;
+    name: string;
+    channelId: number;
+  }) {
+    const [user, whaleWallet] = await Promise.all([
+      this.cache.getUser(userId),
+      this.cache.getWhaleWallets(),
+    ]);
+
+    const watchList = user.watchList ?? [];
+    const isExist = watchList.find((acc) => acc.address === address);
+    if (isExist) return "Whale wallet already exist";
+
+    const whales = whaleWallet[address] ?? { subscribe: {} };
+    whales.subscribe[channelId] = channelId;
+    whaleWallet[address] = whales;
+
+    this.cache.redis.publish(
+      REDIS_WHALE_WALLET,
+      JSON.stringify({
+        wallet: address,
+        channelId,
+        type: "remove",
+      }),
+    );
+
+    await Promise.all([
+      this.cache.setUser(userId, {
+        ...user,
+        watchList: [...watchList, { address, name }],
+      }),
+      this.cache.setWhaleWallets(whaleWallet),
+    ]);
+
+    return "Add wallet to watch list successfully";
+  }
+
+  async removeWatchWallet({
+    userId,
+    address,
+    channelId,
+  }: {
+    userId: number;
+    address: string;
+    channelId: number;
+  }) {
+    const [user, whaleWallet] = await Promise.all([
+      this.cache.getUser(userId),
+      this.cache.getWhaleWallets(),
+    ]);
+    const watchList = user.watchList ?? [];
+    delete whaleWallet[address].subscribe[channelId];
+
+    this.cache.redis.publish(
+      REDIS_WHALE_WALLET,
+      JSON.stringify({
+        wallet: address,
+        channelId,
+        type: "add",
+      }),
+    );
+
+    await Promise.all([
+      this.cache.setUser(userId, {
+        ...user,
+        watchList: watchList.filter((acc) => acc.address !== address),
+      }),
+      this.cache.setWhaleWallets(whaleWallet),
+    ]);
+
+    return "Remove wallet to watch list successfully";
   }
 
   async importWallet(userId: number, key: string) {
@@ -234,7 +387,7 @@ export class TeleService {
       acc.address,
     );
 
-    this.market.tokenInfo(address);
+    // this.market.tokenInfo(address);
 
     const buttons = {
       reply_markup: {
@@ -454,7 +607,7 @@ export class TeleService {
       if (isTrade(data)) {
         console.log("Start confirm trade");
         const a = await this.uniswap.executeTrade({
-          trade: data,
+          trade: data as any,
           account,
         });
         console.log(a);

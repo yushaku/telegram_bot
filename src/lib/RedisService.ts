@@ -1,23 +1,23 @@
 import { SwapRoute } from "@uniswap/smart-order-router";
 import Redis from "ioredis";
-import { UserEntity } from "../utils/types";
-import { EstimateTrade } from "../../demo";
+import { UserEntity, WhaleList } from "../utils/types";
+import { EstimateTrade } from "@/uniswap/swap/type";
 
 export class RedisService {
-  private readonly cache: Redis;
+  readonly redis: Redis;
   constructor() {
-    this.cache = new Redis({
+    this.redis = new Redis({
       port: 6379,
       host: "127.0.0.1",
     });
   }
 
   async setUser(id: number, value: UserEntity) {
-    this.cache.set(id.toString(), JSON.stringify(value));
+    this.redis.set(id.toString(), JSON.stringify(value));
   }
 
   async getUser(id: number): Promise<UserEntity> {
-    const user = await this.cache.get(id.toString());
+    const user = await this.redis.get(id.toString());
     return JSON.parse(user ?? "{ }");
   }
 
@@ -25,12 +25,23 @@ export class RedisService {
   async setOrder(id: string, order: SwapRoute): Promise<void>;
 
   async setOrder(id: string, order: Order | SwapRoute) {
-    this.cache.set(`order/${id}`, JSON.stringify(order), "PX", 60 * 1000);
+    this.redis.set(`order/${id}`, JSON.stringify(order), "PX", 60 * 1000);
   }
 
-  async getOrder(id: string): Promise<Order | SwapRoute | undefined> {
-    const route = await this.cache.get(`order/${id}`);
+  async getOrder(
+    id: string,
+  ): Promise<Order | SwapRoute | EstimateTrade | undefined> {
+    const route = await this.redis.get(`order/${id}`);
     return JSON.parse(route ?? "{ }");
+  }
+
+  async getWhaleWallets(): Promise<WhaleList> {
+    const res = await this.redis.get("whaleList");
+    return JSON.parse(res ?? "{  }");
+  }
+
+  async setWhaleWallets(data: WhaleList) {
+    this.redis.set("whaleList", JSON.stringify(data));
   }
 }
 

@@ -9,7 +9,6 @@ import {
   IMPORT_WALLET,
   CREATE_WALLET,
   LIST_WALLET,
-  BUY_LIMIT,
   CLOSE,
 } from "./replyTopic";
 import { UNI_GOERLI, UNI_MAINNET } from "@uniswap/smart-order-router";

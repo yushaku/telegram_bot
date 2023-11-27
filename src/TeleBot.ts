@@ -8,36 +8,46 @@ import {
 } from "utils/replyButton";
 import { START_MESSAGE, reportMsg } from "utils/replyMessage";
 import {
-  IMPORT_WALLET,
+  WATCH_WALLET_ADD,
+  BUY_TOKEN,
+  CLOSE,
   CREATE_WALLET,
-  LIST_WALLET,
   FEATURES_WALLET,
+  IMPORT_WALLET,
   INIT_POOL,
+  LIST_WALLET,
   SET_MAX_GAS,
   SET_SPLIPAGE,
-  CLOSE,
-  BUY_TOKEN,
+  NO_CALLBACK,
 } from "utils/replyTopic";
 import { NODE_ENV, chainId } from "utils/token";
 import { isTransaction } from "utils/types";
 import { shortenAddress } from "utils/utils";
+import { Tracker } from "./tracker";
 
 export class TeleBot {
   private readonly bot: TelegramBot;
   private teleService: TeleService;
+  private tracker: Tracker;
 
   constructor(teleId: string) {
     this.bot = new TelegramBot(teleId, { polling: true });
     this.teleService = new TeleService();
+    this.tracker = new Tracker(this.bot);
   }
 
   init() {
     console.info(`🤖 Telegram bot is running`);
     console.info(`🚀 Run on Chain: ${NODE_ENV} with chain id: ${chainId}`);
+    this.tracker.track();
     this.bot.setMyCommands([
       {
         command: "/sniper",
         description: "Summons the Tigon bot main panel",
+      },
+      {
+        command: "/watch",
+        description: "follows the shark and whale",
       },
       {
         command: "/tokens",
@@ -59,10 +69,27 @@ export class TeleBot {
       this.bot.sendMessage(msg.chat.id, START_MESSAGE, START_BUTTONS);
     });
 
-    this.bot.onText(/\/test/, async (msg) => {
-      if (!msg.from) return;
+    // MARK: /watch whale's wallet
+    this.bot.onText(/\/watch/, async (msg) => {
+      const id = msg.from?.id;
+      if (!id) return;
+
       const sent = await this.bot.sendMessage(msg.chat.id, "Processing...");
+      const { text, buttons } = await this.teleService.watchList(id);
+
+      this.bot.editMessageText(text, {
+        chat_id: sent.chat.id,
+        message_id: sent.message_id,
+        parse_mode: "Markdown",
+        disable_web_page_preview: true,
+        reply_markup: buttons,
+      });
     });
+
+    // this.bot.onText(/\/test/, async (msg) => {
+    //   if (!msg.from) return;
+    //   const sent = await this.bot.sendMessage(msg.chat.id, "Processing...");
+    // });
 
     this.bot.onText(/\/trade/, async (msg) => {
       if (!msg.from) return;
@@ -70,7 +97,6 @@ export class TeleBot {
         msg.chat.id,
         "Swap from WETH to UNI",
       );
-      const text = await this.teleService.hi(msg.from.id);
       this.bot.editMessageText("hello", {
         message_id: sent.message_id,
         chat_id: sent.chat.id,
@@ -134,7 +160,7 @@ export class TeleBot {
     this.bot.onText(/^(0x)?[0-9a-fA-F]{40}$/, async (msg) => {
       const address = msg.text;
       const userId = msg.from?.id;
-      if (!address || !userId) return;
+      if (!address || !userId || msg?.reply_to_message) return;
 
       const { text, buttons } = await this.teleService.checkToken({
         address,
@@ -170,13 +196,9 @@ export class TeleBot {
         });
       }
 
-      if (
-        action.match(
-          /(remove_wallet|detail_wallet|buy_custom|confirm_swap|sell_custom) (\S+)/g,
-        )
-      ) {
+      //HACK: 📬 CRUD WALLET
+      if (action.match(/(remove_wallet|detail_wallet) (\S+)/g)) {
         const [type, address] = action.split(" ");
-
         switch (type) {
           // MARK: Pick wallet to interact
           case "detail_wallet": {
@@ -195,7 +217,7 @@ export class TeleBot {
             break;
           }
 
-          // MARK: remove wallet
+          // MARK: remove user's wallet
           case "remove_wallet": {
             const sent = await this.bot.sendMessage(
               chatId,
@@ -216,8 +238,56 @@ export class TeleBot {
               },
             );
           }
+        }
+      }
 
-          // MARK: 📌 buy amount of token
+      //HACK: 🐳 CRUD TRACK WALLET
+      if (action.match(/(watch_wallet_remove|watch_wallet) (\S+)/g)) {
+        const [type, address] = action.split(" ");
+        switch (type) {
+          // MARK: remove wallet in watching list
+          case "watch_wallet_remove": {
+            const sent = await this.bot.sendMessage(
+              chatId,
+              "⚠️  Are you sure?  type 'yes' to confirm ⚠️",
+              { reply_markup: { force_reply: true } },
+            );
+
+            return this.bot.onReplyToMessage(
+              chatId,
+              sent.message_id,
+              async (msg) => {
+                if (!msg.from?.id || msg?.text !== "yes") return;
+                const text = await this.teleService.removeWatchWallet({
+                  userId: msg.from.id,
+                  address,
+                  channelId: chatId,
+                });
+                return this.bot.sendMessage(chatId, text);
+              },
+            );
+          }
+
+          // MARK: get details of tracked wallet
+          case "watch_wallet": {
+            const { text, buttons } =
+              await this.teleService.detailWallet(address);
+
+            return this.bot.sendMessage(chatId, text, {
+              parse_mode: "Markdown",
+              disable_web_page_preview: false,
+              reply_markup: buttons,
+            });
+          }
+        }
+      }
+
+      //HACK: 🪙 BUY/SELL TOKEN
+      if (action.match(/(buy_custom|confirm_swap|sell_custom) (\S+)/g)) {
+        const [type, address] = action.split(" ");
+
+        switch (type) {
+          // MARK: buy amount of token
           case "buy_custom": {
             const sent = await this.bot.sendMessage(
               chatId,
@@ -295,7 +365,7 @@ export class TeleBot {
             );
           }
 
-          // TODO: 🆘 sell amount of token
+          // TODO: sell amount of token
           case "sell_custom": {
             const sent = await this.bot.sendMessage(
               chatId,
@@ -339,6 +409,7 @@ export class TeleBot {
         return;
       }
 
+      //HACK: ⚡ BASIC FEATURES
       switch (action) {
         // MARK: show wallet list and chain information
         case FEATURES_WALLET: {
@@ -348,7 +419,6 @@ export class TeleBot {
 
         // TODO: swap now
         case "swap_now": {
-          const sent = await this.bot.sendMessage(chatId, "Swapping...");
           break;
         }
 
@@ -427,6 +497,51 @@ export class TeleBot {
           );
         }
 
+        // MARK: Add wallet to watching list
+        case WATCH_WALLET_ADD: {
+          const sent1 = await this.bot.sendMessage(
+            chatId,
+            "Enter wallet address",
+            { reply_markup: { force_reply: true } },
+          );
+
+          return this.bot.onReplyToMessage(
+            sent1.chat.id,
+            sent1.message_id,
+            async (msg) => {
+              const address = msg.text;
+              if (!address || !isAddress(address)) {
+                return this.bot.sendMessage(
+                  chatId,
+                  "❌ It is not a wallet address",
+                );
+              }
+
+              const sent2 = await this.bot.sendMessage(
+                sent1.chat.id,
+                "Enter wallet name",
+                { reply_markup: { force_reply: true } },
+              );
+
+              this.bot.onReplyToMessage(
+                sent2.chat.id,
+                sent2.message_id,
+                async (msg) => {
+                  if (!msg.text || !msg.from?.id) return;
+
+                  const text = await this.teleService.addWatchWallet({
+                    channelId: chatId,
+                    userId: msg.from?.id,
+                    name: msg.text,
+                    address,
+                  });
+                  this.bot.sendMessage(chatId, text);
+                },
+              );
+            },
+          );
+        }
+
         // MARK: List wallet
         case LIST_WALLET: {
           const btns = await this.teleService.listWallet(query.from.id);
@@ -446,6 +561,9 @@ export class TeleBot {
             TOKENS_BUTTONS,
           );
         }
+
+        case NO_CALLBACK:
+          break;
 
         default:
           this.bot.sendMessage(chatId, "unknown command");
