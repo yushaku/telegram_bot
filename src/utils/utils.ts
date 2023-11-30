@@ -87,3 +87,8 @@ export function isAddress(address: string) {
 export function shortenAmount(str: string | number, num = 7) {
   return Number(str.toString().substring(0, num));
 }
+
+export function jsbiToNumber(numerator: JSBI, denominator: JSBI) {
+  const result = JSBI.divide(numerator, denominator);
+  return Number(result.toString());
+}

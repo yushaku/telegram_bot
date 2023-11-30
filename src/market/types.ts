@@ -58,3 +58,9 @@ export type PriceClass = {
   bid?: number;
   currency?: Currency;
 };
+
+export type TopHolder = {
+  address: string;
+  balance: number;
+  share: number;
+};

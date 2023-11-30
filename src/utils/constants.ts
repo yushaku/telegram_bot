@@ -9,6 +9,7 @@ const envSchema = z.object({
   ETHERSCAN_ID: z.string(),
   ONE_INCH_KEY: z.string(),
   COIN_MARKET_KEY: z.string(),
+  ETH_PLORER: z.string(),
 });
 
 export const {
@@ -18,6 +19,7 @@ export const {
   ETHERSCAN_ID,
   ONE_INCH_KEY,
   COIN_MARKET_KEY,
+  ETH_PLORER,
 } = envSchema.parse(process.env);
 
 export const BROADCAST_API_URL = `https://api.1inch.dev/tx-gateway/v1.1/${chainId}/broadcast/`;
@@ -48,6 +50,9 @@ export const NONFUNGIBLE_POSITION_MANAGER_CONTRACT_ADDRESS =
   "0xC36442b4a4522E871399CD717aBDD847Ab11FE88";
 export const UNIVERCAL_ROUTER_ADDRESS =
   "0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD";
+
+export const UNISWAP_V3_POOL = "0x1d42064Fc4Beb5F8aAF85F4617AE8b3b5B8Bd801";
+export const UNISWAP_V2_POOL = "0x1d42064Fc4Beb5F8aAF85F4617AE8b3b5B8Bd801";
 
 export const WETH_ABI = [
   "function deposit() payable", // Wrap ETH

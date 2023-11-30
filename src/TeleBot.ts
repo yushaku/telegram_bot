@@ -1,12 +1,8 @@
 import { TeleService } from "TeleService";
 import { isAddress } from "ethers/lib/utils";
 import TelegramBot from "node-telegram-bot-api";
-import {
-  START_BUTTONS,
-  TOKENS_BUTTONS,
-  WALLET_BUTTONS,
-} from "utils/replyButton";
-import { START_MESSAGE, reportMsg } from "utils/replyMessage";
+import { TOKENS_BUTTONS, WALLET_BUTTONS } from "utils/replyButton";
+import { reportMsg, whaleActionMsg2 } from "utils/replyMessage";
 import {
   WATCH_WALLET_ADD,
   BUY_TOKEN,
@@ -24,16 +20,19 @@ import { NODE_ENV, chainId } from "utils/token";
 import { isTransaction } from "utils/types";
 import { shortenAddress } from "utils/utils";
 import { Tracker } from "./tracker";
+import { CoinMarket } from "./market";
 
 export class TeleBot {
   private readonly bot: TelegramBot;
   private teleService: TeleService;
   private tracker: Tracker;
+  private market: CoinMarket;
 
   constructor(teleId: string) {
     this.bot = new TelegramBot(teleId, { polling: true });
     this.teleService = new TeleService();
     this.tracker = new Tracker(this.bot);
+    this.market = new CoinMarket();
   }
 
   init() {
@@ -41,10 +40,6 @@ export class TeleBot {
     console.info(`🚀 Run on Chain: ${NODE_ENV} with chain id: ${chainId}`);
     this.tracker.track();
     this.bot.setMyCommands([
-      {
-        command: "/sniper",
-        description: "Summons the Tigon bot main panel",
-      },
       {
         command: "/watch",
         description: "follows the shark and whale",
@@ -63,11 +58,11 @@ export class TeleBot {
   }
 
   listen() {
-    this.bot.onText(/\/sniper/, (msg) => {
-      if (!msg.from) return;
-      this.teleService.commandStart(msg.from);
-      this.bot.sendMessage(msg.chat.id, START_MESSAGE, START_BUTTONS);
-    });
+    // this.bot.onText(/\/sniper/, (msg) => {
+    //   if (!msg.from) return;
+    //   this.teleService.commandStart(msg.from);
+    //   this.bot.sendMessage(msg.chat.id, START_MESSAGE, START_BUTTONS);
+    // });
 
     // MARK: /watch whale's wallet
     this.bot.onText(/\/watch/, async (msg) => {
@@ -86,10 +81,27 @@ export class TeleBot {
       });
     });
 
-    // this.bot.onText(/\/test/, async (msg) => {
-    //   if (!msg.from) return;
-    //   const sent = await this.bot.sendMessage(msg.chat.id, "Processing...");
-    // });
+    this.bot.onText(/\/test/, async (msg) => {
+      if (!msg.from) return;
+      const sent = await this.bot.sendMessage(msg.chat.id, "Processing...");
+      const data = await this.tracker.getTx(
+        "0x6a07a78b6fa4617fdc1ef482b134a1bda0c2e229d12b82c24ffdf2a11ec6ed01",
+      );
+      if (!data) return;
+      const { sendTx, receiveTx, hash } = data;
+      this.bot.editMessageText(
+        whaleActionMsg2({
+          hash,
+          sendTx,
+          receiveTx,
+        }),
+        {
+          message_id: sent.message_id,
+          chat_id: sent.chat.id,
+          parse_mode: "Markdown",
+        },
+      );
+    });
 
     this.bot.onText(/\/trade/, async (msg) => {
       if (!msg.from) return;
@@ -283,7 +295,9 @@ export class TeleBot {
       }
 
       //HACK: 🪙 BUY/SELL TOKEN
-      if (action.match(/(buy_custom|confirm_swap|sell_custom) (\S+)/g)) {
+      if (
+        action.match(/(buy_custom|confirm_swap|sell_custom|top_holders) (\S+)/g)
+      ) {
         const [type, address] = action.split(" ");
 
         switch (type) {
@@ -305,11 +319,13 @@ export class TeleBot {
                     chatId,
                     "Estimate your price...",
                   );
+
                   const { text, buttons } = await this.teleService.estimate({
                     userId: msg.from.id,
                     amount: Number(msg.text),
                     tokenAddress: address,
                   });
+
                   return this.bot.editMessageText(text, {
                     chat_id: sent.chat.id,
                     message_id: sent.message_id,
@@ -365,6 +381,23 @@ export class TeleBot {
             );
           }
 
+          //MARK: get top holders of token
+          case "top_holders": {
+            const sent = await this.bot.sendMessage(
+              chatId,
+              "Getting top holders...",
+            );
+
+            const { text, buttons } =
+              await this.teleService.getTopHolders(address);
+            return this.bot.editMessageText(text, {
+              parse_mode: "Markdown",
+              chat_id: sent.chat.id,
+              message_id: sent.message_id,
+              ...buttons,
+            });
+          }
+
           // TODO: sell amount of token
           case "sell_custom": {
             const sent = await this.bot.sendMessage(
@@ -417,12 +450,12 @@ export class TeleBot {
           return this.bot.sendMessage(chatId, text, WALLET_BUTTONS);
         }
 
-        // TODO: swap now
+        // TODO: Swap now
         case "swap_now": {
           break;
         }
 
-        // TODO: pool provide
+        // TODO: Provide liquidity to pool
         case INIT_POOL: {
           return this.bot.sendMessage(chatId, "ok");
         }
@@ -468,9 +501,7 @@ export class TeleBot {
           const replyMsg = await this.bot.sendMessage(
             chatId,
             "Imput your secret key or mnemonic here:",
-            {
-              reply_markup: { force_reply: true },
-            },
+            { reply_markup: { force_reply: true } },
           );
 
           return this.bot.onReplyToMessage(

@@ -57,12 +57,7 @@ export class UniRoute {
     amount: number;
     account: Account;
   }) {
-    const tokenIn = new Erc20Token(
-      tokenA.address,
-      tokenA.name,
-      tokenA.decimals,
-      this.provider,
-    );
+    const tokenIn = new Erc20Token(tokenA.address, this.provider);
 
     const [currencyAmount, res] = await Promise.all([
       tokenIn.balanceOf(account.address),
@@ -154,12 +149,7 @@ export class UniRoute {
     amount: number;
     account: Account;
   }): Promise<SwapRoute | null> {
-    const tokenIn = new Erc20Token(
-      tokenA.address,
-      tokenA.name,
-      tokenA.decimals,
-      this.provider,
-    );
+    const tokenIn = new Erc20Token(tokenA.address, this.provider);
 
     const res = await tokenIn.checkTokenApproval({
       amount,

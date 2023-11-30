@@ -1,10 +1,10 @@
 import { httpClient } from "@/utils/axiosClient";
-import { COIN_MARKET_KEY } from "@/utils/constants";
-import { ScanWallet } from "./types";
+import { COIN_MARKET_KEY, ETH_PLORER } from "@/utils/constants";
+import { ScanWallet, TopHolder } from "./types";
 import { chainId } from "@/utils/token";
 import { ChainId } from "@uniswap/sdk-core";
 
-const urlScan = () => {
+const url = () => {
   switch (chainId) {
     case ChainId.MAINNET:
       return "https://api.ethplorer.io/";
@@ -26,7 +26,8 @@ export class CoinMarket {
   });
 
   protected ethplorer = httpClient({
-    baseURL: urlScan(),
+    baseURL: url(),
+    key: ETH_PLORER,
   });
 
   async tokenInfo(address: string) {
@@ -67,7 +68,7 @@ export class CoinMarket {
         limit,
       },
     });
-    return res.data;
+    return res.data?.holders as TopHolder[] | undefined;
   }
 
   async getHistory(address: string, limit = 10, type = "transfer") {
@@ -75,9 +76,9 @@ export class CoinMarket {
       params: {
         apiKey: "freekey",
         limit,
-        type,
       },
     });
+    Bun.write("./ts.json", JSON.stringify(res.data, null, 2));
     return res.data;
   }
 }

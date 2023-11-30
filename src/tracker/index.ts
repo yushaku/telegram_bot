@@ -1,27 +1,26 @@
 import { RedisService } from "@/lib/RedisService";
-import { RPC_URLS, RPC_WS } from "@/utils/networks";
+import { getProvider, url, ws } from "@/utils/networks";
 import { whaleActionMsg } from "@/utils/replyMessage";
 import { REDIS_WHALE_WALLET } from "@/utils/replyTopic";
-import { NODE_ENV, chainId } from "@/utils/token";
 import { EventWhaleWallet, WhaleList } from "@/utils/types";
 import TelegramBot from "node-telegram-bot-api";
-import Web3, { FMT_BYTES, FMT_NUMBER, utils } from "web3";
-
-const ws =
-  NODE_ENV === "LOCAL"
-    ? "ws://localhost:8545"
-    : RPC_WS[chainId as keyof typeof RPC_WS];
-
-const url =
-  NODE_ENV === "LOCAL"
-    ? "http://127.0.0.1:8545"
-    : RPC_URLS[chainId as keyof typeof RPC_URLS];
+import Web3, { FMT_BYTES, FMT_NUMBER, Log, utils } from "web3";
+import { Erc20Token } from "@/lib/Erc20token";
 
 const wsProvider = new Web3.providers.WebsocketProvider(ws);
-const provider = new Web3.providers.HttpProvider(url);
+const provider = getProvider();
+
+export type ParseLog = {
+  name: string;
+  symbol: string;
+  amount: number;
+  from: string;
+  to: string;
+  address: string;
+};
 
 export class Tracker {
-  private provider = new Web3(provider);
+  private provider = new Web3(url);
   private socket = new Web3(wsProvider);
   private cache = new RedisService();
   private bot: TelegramBot;
@@ -79,11 +78,11 @@ export class Tracker {
         await new Promise((resolve) => setTimeout(resolve, 1_000));
 
         const tx = await this.provider.eth.getTransaction(data);
-        console.log(tx);
 
         if (tx) {
           const text = whaleActionMsg(tx);
-          const list = Object.keys(this.whale[tx.from].subscribe);
+          const whale = this.whale[tx.from];
+          const list = Object.keys(whale?.subscribe ?? {});
           list.forEach((chatId) => {
             this.bot.sendMessage(chatId, text, {
               parse_mode: "Markdown",
@@ -114,6 +113,49 @@ export class Tracker {
       value: utils.toWei("0.001", "ether"),
     });
     console.log("Transaction Receipt:", transactionReceipt);
+  }
+
+  async getTx(hash: string) {
+    const tx = await this.provider.eth.getTransactionReceipt(hash);
+
+    const send = tx.logs.at(1);
+    const receive = tx.logs.at(0);
+
+    if (!send || !receive) return;
+
+    const [sendTx, receiveTx] = await Promise.all([
+      this.convertLog(send),
+      this.convertLog(receive),
+    ]);
+
+    return {
+      hash: tx.transactionHash.toString(),
+      sendTx,
+      receiveTx,
+    };
+  }
+  async convertLog(log: Log): Promise<ParseLog | undefined> {
+    console.log(log);
+
+    const from = log.topics?.at(1)?.toString();
+    const to = log.topics?.at(2)?.toString();
+
+    if (!log?.address || !from || !to) return;
+    const token = new Erc20Token(log.address, provider);
+    const name = await token.name();
+    const symbol = await token.symbol();
+    console.log(name);
+
+    const amount = Number(log.data) / 10 ** token.decimals;
+
+    return {
+      name,
+      symbol,
+      amount,
+      address: log.address,
+      from: "0x" + from.slice(26),
+      to: "0x" + to.slice(26),
+    };
   }
 
   async getPassTx() {

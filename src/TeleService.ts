@@ -5,26 +5,28 @@ import { getProvider } from "@/utils/networks";
 import {
   esstimateMsg,
   esstimateSwap,
+  report2Msg,
   scanWalletmsg,
   tokenDetail,
   walletDetail,
   walletMsg,
 } from "@/utils/replyMessage";
 import {
-  WATCH_WALLET_ADD,
   BUY_LIMIT,
   BUY_TOKEN,
   CLOSE,
-  SELL_LIMIT,
-  SELL_TOKEN,
   NO_CALLBACK,
   REDIS_WHALE_WALLET,
+  SELL_LIMIT,
+  SELL_TOKEN,
+  WATCH_WALLET_ADD,
 } from "@/utils/replyTopic";
 import { UNI, WETH, chainId, isWETH } from "@/utils/token";
 import { Account, isTransaction } from "@/utils/types";
 import {
   bigintToNumber,
   createAccount,
+  jsbiToNumber,
   parseKey,
   shortenAddress,
   shortenAmount,
@@ -36,7 +38,6 @@ import { RedisService, isOrder, isSwapRoute, isTrade } from "lib/RedisService";
 import TelegramBot, { User } from "node-telegram-bot-api";
 import { v4 as uuidv4 } from "uuid";
 import { Erc20Token } from "./lib/Erc20token";
-import { urlScan } from "./utils/contract";
 import { CoinMarket } from "./market";
 
 export class TeleService {
@@ -191,18 +192,18 @@ export class TeleService {
       const amount =
         token.balance / 10 ** Number(token.tokenInfo.decimals ?? 18);
       if (amount < 0.0001) return;
-      const usd =
+      const price =
         typeof token.tokenInfo.price === "boolean"
           ? 0
           : token.tokenInfo.price.rate;
-      const total = usd * Number(amount);
+      const total = price * Number(amount);
       const symbol = token.tokenInfo.symbol;
 
       list.push([
         { text: symbol, callback_data: token.tokenInfo.address },
-        { text: usd.toFixed(4), callback_data: NO_CALLBACK },
+        { text: `💲 ${price.toFixed(4)}`, callback_data: NO_CALLBACK },
         { text: amount.toFixed(4), callback_data: NO_CALLBACK },
-        { text: total.toFixed(4), callback_data: NO_CALLBACK },
+        { text: `💲 ${total.toFixed(4)}`, callback_data: NO_CALLBACK },
       ]);
     });
 
@@ -382,10 +383,8 @@ export class TeleService {
         },
       };
 
-    const token = new Erc20Token(address, "token", 18, this.provider);
-    const { name, symbol, decimals, balance } = await token.getInfo(
-      acc.address,
-    );
+    const token = new Erc20Token(address, this.provider);
+    const { name, symbol, balance } = await token.getInfo(acc.address);
 
     // this.market.tokenInfo(address);
 
@@ -394,18 +393,18 @@ export class TeleService {
         inline_keyboard: [
           [
             {
-              text: "💸 Buy by 0.1ETH",
-              callback_data: `buy_token ${address}`,
+              text: "💸 Buy amount",
+              callback_data: `buy_custom ${address}`,
             },
             {
-              text: "💸 Buy custom amount",
-              callback_data: `buy_custom ${address}`,
+              text: "💰 Sell amount",
+              callback_data: `sell_custom ${address}`,
             },
           ],
           [
             {
-              text: "💰 Sell custom amount",
-              callback_data: `sell_custom ${address}`,
+              text: "🏆 Top holders",
+              callback_data: `top_holders ${address}`,
             },
           ],
           [
@@ -419,16 +418,47 @@ export class TeleService {
 
     return {
       buttons,
-      text: tokenDetail({
-        name,
-        symbol,
-        address,
-        balance,
-        decimals,
-        supply: 1000,
-        marketcap: 100000,
-        price: 10000,
-      }),
+      text: tokenDetail({ name, symbol, address, balance }),
+    };
+  }
+
+  async getTopHolders(address: string) {
+    const token = new Erc20Token(address, this.provider);
+    const [name, symbol, top_holders] = await Promise.all([
+      token.name(),
+      token.symbol(),
+      this.market.topTokenHolders(address),
+    ]);
+
+    if (!name || !top_holders)
+      return {
+        text: "Token not found",
+        buttons: {},
+      };
+
+    const buttons = top_holders.map(({ address, balance }) => [
+      {
+        text: shortenAddress(address),
+        callback_data: `watch_wallet ${address}`,
+      },
+      {
+        text: `${balance / 10 ** token.decimals} ${symbol}`,
+        callback_data: NO_CALLBACK,
+      },
+    ]);
+
+    const inline_keyboard = [
+      [
+        { text: "Address", callback_data: NO_CALLBACK },
+        { text: "Amount", callback_data: NO_CALLBACK },
+      ],
+      ...buttons,
+      [{ text: "❎ Close", callback_data: CLOSE }],
+    ];
+
+    return {
+      text: `Top holders of ${name}`,
+      buttons: { reply_markup: { inline_keyboard } },
     };
   }
 
@@ -578,10 +608,26 @@ export class TeleService {
       return { text: `Not enough amount of ${tokenA.name}`, buttons: null };
     }
 
-    const a = await this.uniswap.executeTrade({ account, trade });
+    const receive = await this.uniswap.executeTrade({ account, trade });
+    const { infoB, infoA } = await this.endSwap({
+      from: tokenA.address,
+      to: tokenB.address,
+      account: account.address,
+    });
+
+    const { numerator, denominator } = trade?.swaps[0].outputAmount;
+    const amountB = jsbiToNumber(numerator, denominator);
 
     return {
-      text: `✅ Buy token success \nCheck transaction: [etherscan](${urlScan()}/tx/${a?.transactionHash})`,
+      text: report2Msg({
+        status: receive?.status === 1 ? "Successfully" : "Failed",
+        hash: receive?.transactionHash,
+        gas: receive?.gasUsed,
+        infoA,
+        infoB,
+        amountA: amount,
+        amountB: amountB / 10 ** infoB.decimals,
+      }),
     };
   }
 
@@ -611,6 +657,7 @@ export class TeleService {
           account,
         });
         console.log(a);
+        return a;
       }
     } catch (error) {
       console.log(error);
@@ -628,6 +675,25 @@ export class TeleService {
     console.log(result);
 
     return result;
+  }
+
+  async endSwap({
+    from,
+    to,
+    account,
+  }: {
+    from: string;
+    to: string;
+    account: string;
+  }) {
+    const tokenA = new Erc20Token(from, this.provider);
+    const tokenB = new Erc20Token(to, this.provider);
+
+    const [infoA, infoB] = await Promise.all([
+      tokenA.getInfo(account),
+      tokenB.getInfo(account),
+    ]);
+    return { infoA, infoB };
   }
 
   async getDetails({ wallet, userId }: { wallet: string; userId: number }) {

@@ -1,10 +1,9 @@
-import { BigNumber, Transaction } from "ethers";
-import { urlScan } from "./contract";
+import { BigNumber } from "ethers";
 import { formatUnits } from "ethers/lib/utils";
-import { fromReadableAmount, shortenAddress, toReadableAmount } from "./utils";
-import { Watchlist } from "@/utils/types";
+import { shortenAddress, toReadableAmount } from "./utils";
 import { ScanWallet } from "@/market/types";
-import { RPC_URLS } from "./networks";
+import { urlScan } from "./networks";
+import { ParseLog } from "@/tracker";
 
 export const START_MESSAGE = `
 What would you like to do today?
@@ -107,28 +106,17 @@ export const tokenDetail = ({
   name,
   symbol,
   address,
-  decimals,
-  supply,
-  marketcap,
-  price,
   balance,
 }: {
   address: string;
   name: string;
   balance: number | string;
   symbol: string;
-  decimals: number;
-  supply: number;
-  marketcap: number;
-  price: number;
 }) => `
 🔬  ${name} (${symbol})  -  Chain: Etherscan
 
 Links: [Etherscan](https://etherscan.io/token/${address})  -  📈Chart
 Your ${name}'s balance: \`${balance}\` ${symbol}
-Supply: \`${supply}\` ⬩ Decimals: \`${decimals}\`
-Marketcap: \`$${marketcap}\`
-Price: $\`${price}\`
 Address: \`${address}\`
 
 🍯 Honeypot Check: Doesnt seem like a [honeypot](https://honeypot.is/ethereum?address=${address})
@@ -192,13 +180,48 @@ export const reportMsg = ({
   gas,
 }: {
   status: string;
-  hash: string;
+  hash?: string;
   gas?: BigNumber;
 }) => `
 Your transaction is ${status} 🚀
 Hash: \`${shortenAddress(hash, 12)}\`
 Gas Cost: \`${formatUnits(gas ?? 0, "gwei")}\` gwei
-View in [etherscan](${urlScan()}/tx/${hash})
+View in [etherscan](${urlScan}/tx/${hash})
+`;
+
+export const report2Msg = ({
+  infoA,
+  infoB,
+  amountA,
+  amountB,
+  status,
+  hash,
+  gas,
+}: {
+  infoA: any;
+  infoB: any;
+  amountA: number | string;
+  amountB: number | string;
+  status: string;
+  hash?: string;
+  gas?: BigNumber;
+}) => `
+⚡  Your transaction is ${status}
+Swap from __${infoA?.symbol}__ to __${infoB?.symbol}__
+Sent: \`${amountA}\` ${infoA?.symbol}
+Received: \`${amountB}\` ${infoB?.symbol}
+
+----------------------------------------------------------
+
+📈 New account balance:
+${infoA?.symbol} balance: \`${infoA?.balance}\` 
+${infoB?.symbol} balance: \`${infoB?.balance}\` 
+
+----------------------------------------------------------
+
+🤝 Hash: \`${shortenAddress(hash, 12)}\`
+Gas Cost: \`${formatUnits(gas ?? 0, "gwei")}\` gwei
+View in [etherscan](${urlScan}/tx/${hash})
 `;
 
 export const scanWalletmsg = (data: ScanWallet) => `
@@ -211,5 +234,21 @@ export const whaleActionMsg = ({ from, to, value, hash }: any) => `
 Whale action: 😎\`${shortenAddress(
   from,
 )}\` to \`${to}\ with value \`${toReadableAmount(value)}\ 🚨
-Check: [Etherscan](${urlScan()}/tx/${hash})
+Check: [Etherscan](${urlScan}/tx/${hash})
+`;
+
+export const whaleActionMsg2 = ({
+  sendTx,
+  receiveTx,
+  hash,
+}: {
+  hash: string;
+  sendTx: ParseLog | undefined;
+  receiveTx: ParseLog | undefined;
+}) => `
+⚡ Ethereum ⚡ Uniswap ⚡ Wallet: \`${shortenAddress(sendTx?.address, 8)}\` 
+Swap from \`${sendTx?.symbol}\` to \`${receiveTx?.symbol}\`
+Sent: ${sendTx?.amount} [${sendTx?.symbol}](${urlScan}/token/${sendTx?.address}) (~$33,329)
+Received: ${receiveTx?.amount} [${receiveTx?.symbol}](${urlScan}/token/${receiveTx?.address}) (~$33,260)
+Check Tx hash: [Etherscan](${urlScan}/tx/${hash})
 `;

@@ -31,7 +31,7 @@ const ysk = new Token(
   "YSK",
 );
 const provider = getProvider();
-const yushaku = new Erc20Token(ysk.address, ysk.name, ysk.decimals, provider);
+const yushaku = new Erc20Token(ysk.address, provider);
 
 describe("test function of erc20", () => {
   test("get amount", async () => {

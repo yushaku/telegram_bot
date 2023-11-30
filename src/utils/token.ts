@@ -23,8 +23,7 @@ function enumToMap<T extends string | number>(enumObj: Record<string, T>) {
 }
 
 const chainList = enumToMap(ChainId);
-export const chainId = chainList.get(NODE_ENV) ?? ChainId.GOERLI 
-
+export const chainId = chainList.get(NODE_ENV) ?? ChainId.MAINNET; 
 
 export const MATIC_POLYGON = new Token(ChainId.POLYGON, '0x0000000000000000000000000000000000001010', 18, 'MATIC')
 export const MATIC_MUMBAI = new Token(ChainId.POLYGON_MUMBAI, '0x0000000000000000000000000000000000001010', 18, 'MATIC')

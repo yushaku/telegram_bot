@@ -7,23 +7,17 @@ import { Account } from "utils/types";
 import { fromReadableAmount, toReadableAmount } from "utils/utils";
 
 export class Erc20Token {
-  public name: string;
+  private provider: JsonRpcProvider;
+  private contract: Contract;
   public address: string;
   public decimals: number;
-  private contract: Contract;
-  private provider: JsonRpcProvider;
 
-  constructor(
-    address: string,
-    name = "ERC20",
-    decimals = 18,
-    provider: JsonRpcProvider,
-  ) {
-    this.name = name;
+  constructor(address: string, provider: JsonRpcProvider, decimals = 18) {
     this.address = address;
-    this.decimals = decimals;
     this.provider = provider;
     this.contract = new Contract(address, ERC20, provider);
+    this.decimals = decimals;
+    this.init();
   }
 
   async getInfo(address: string) {
@@ -40,6 +34,22 @@ export class Erc20Token {
       name,
       symbol,
     };
+  }
+
+  async name() {
+    return this.contract.name();
+  }
+
+  async symbol() {
+    return this.contract.symbol();
+  }
+
+  async getDecimal() {
+    return this.contract.decimals();
+  }
+
+  async init() {
+    this.decimals = await this.getDecimal();
   }
 
   async approve({

@@ -27,19 +27,8 @@ export class UniswapService extends UniRoute {
     const token1 = tokens.tokenA;
     const token2 = tokens.tokenB;
 
-    const contractA = new Erc20Token(
-      token1.address,
-      token1.name,
-      token1.decimals,
-      this.provider,
-    );
-
-    const contractB = new Erc20Token(
-      token2.address,
-      token2.name,
-      token2.decimals,
-      this.provider,
-    );
+    const contractA = new Erc20Token(token1.address, this.provider);
+    const contractB = new Erc20Token(token2.address, this.provider);
 
     const [tokenA, tokenB] = await Promise.all([
       contractA.getInfo(walletAddress),

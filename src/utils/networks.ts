@@ -19,47 +19,52 @@ export const RPC_URLS = {
 };
 
 export const RPC_WS = {
-  [ChainId.MAINNET]: `wss://mainnet.infura.io/ws/v3/${INFURA_KEY}`,
-  [ChainId.GOERLI]: `wss://goerli.infura.io/ws/v3/${INFURA_KEY}`,
-  [ChainId.SEPOLIA]: `wss://sepolia.infura.io/ws/v3/${INFURA_KEY}`,
-  [ChainId.POLYGON]: `wss://polygon-mainnet.infura.io/ws/v3/${INFURA_KEY}`,
-  [ChainId.POLYGON_MUMBAI]: `wss://polygon-mumbai.infura.io/ws/v3/${INFURA_KEY}`,
+  [ChainId.MAINNET]: `ws://mainnet.infura.io/ws/v3/${INFURA_KEY}`,
+  [ChainId.GOERLI]: `ws://goerli.infura.io/ws/v3/${INFURA_KEY}`,
+  [ChainId.SEPOLIA]: `ws://sepolia.infura.io/ws/v3/${INFURA_KEY}`,
+  [ChainId.POLYGON]: `ws://polygon-mainnet.infura.io/ws/v3/${INFURA_KEY}`,
+  [ChainId.POLYGON_MUMBAI]: `ws://polygon-mumbai.infura.io/ws/v3/${INFURA_KEY}`,
 };
 
-export function getProvider() {
-  if (NODE_ENV === "LOCAL") {
-    return new JsonRpcProvider({ url: "http://127.0.0.1:8545" });
-  }
+export const getUrlScan = () => {
+  switch (chainId) {
+    case ChainId.GOERLI:
+      return `https://goerli.etherscan.io`;
 
-  return new JsonRpcProvider(RPC_URLS[chainId as keyof typeof RPC_URLS]);
+    case ChainId.MAINNET:
+      return `https://etherscan.io`;
+
+    case ChainId.SEPOLIA:
+      return `https://sepolia.etherscan.io`;
+  }
+};
+export const urlScan = getUrlScan();
+
+export const ws =
+  NODE_ENV === "LOCAL"
+    ? "ws://localhost:8545"
+    : RPC_WS[chainId as keyof typeof RPC_WS];
+
+export const url =
+  NODE_ENV === "LOCAL"
+    ? "http://127.0.0.1:8545"
+    : RPC_URLS[chainId as keyof typeof RPC_URLS];
+
+export function getProvider() {
+  return new JsonRpcProvider(url);
 }
 
 export function getWeb3Provider() {
-  if (NODE_ENV === "LOCAL") {
-    return new Web3("http://127.0.0.1:8545");
-  }
-
-  return new Web3(RPC_URLS[chainId as keyof typeof RPC_URLS]);
+  return new Web3(url);
 }
 
 export class Provider {
   private static instance: JsonRpcProvider;
-
   private constructor() {}
-
   public static getInstance(): JsonRpcProvider {
     if (!Provider.instance) {
-      if (NODE_ENV === "LOCAL") {
-        Provider.instance = new JsonRpcProvider({
-          url: "http://127.0.0.1:8545",
-        });
-      } else {
-        Provider.instance = new JsonRpcProvider(
-          RPC_URLS[chainId as keyof typeof RPC_URLS],
-        );
-      }
+      Provider.instance = new JsonRpcProvider(url);
     }
-
     return Provider.instance;
   }
 }
