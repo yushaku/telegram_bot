@@ -20,6 +20,7 @@ export type WhaleList = {
 
 export type UserEntity = {
   name: string;
+  tokenIn: string;
   accounts: Account[];
   watchList: Watchlist[];
   mainAccount: Account | null;

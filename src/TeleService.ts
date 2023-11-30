@@ -14,6 +14,7 @@ import {
 import {
   BUY_LIMIT,
   BUY_TOKEN,
+  CHANGE_INPUT_CURRENCY,
   CLOSE,
   NO_CALLBACK,
   REDIS_WHALE_WALLET,
@@ -39,6 +40,7 @@ import TelegramBot, { User } from "node-telegram-bot-api";
 import { v4 as uuidv4 } from "uuid";
 import { Erc20Token } from "./lib/Erc20token";
 import { CoinMarket } from "./market";
+import { CHANGE_SWAP_INPUT_TOKEN, CLOSE_BUTTON } from "./utils/replyButton";
 
 export class TeleService {
   private provider: JsonRpcProvider;
@@ -119,6 +121,7 @@ export class TeleService {
 
     const defalt = {
       name: `${first_name} ${last_name}`,
+      tokenIn: WETH9[chainId].address,
       accounts: [],
       watchList: [],
       mainAccount: null,
@@ -218,7 +221,7 @@ export class TeleService {
             { text: "Total", callback_data: NO_CALLBACK },
           ],
           ...list,
-          [{ text: "❎ Close", callback_data: CLOSE }],
+          [{ text: "✖️ Close", callback_data: CLOSE }],
         ],
       },
     };
@@ -359,6 +362,32 @@ export class TeleService {
     };
   }
 
+  async listOptionsOfToken() {
+    return {
+      text: "👇 Select token as an input of your swap:",
+      buttons: CHANGE_SWAP_INPUT_TOKEN,
+    };
+  }
+
+  async changeSwapInputToken(userId: number, address: string) {
+    const user = await this.cache.getUser(userId);
+    const token = new Erc20Token(address, this.provider);
+    const name = token.name();
+    if (!name)
+      return {
+        text: "⭕ Token not found",
+        buttons: CLOSE_BUTTON,
+      };
+
+    user.tokenIn = address;
+    this.cache.setUser(userId, user);
+
+    return {
+      text: "✅ Updated input token address successfully",
+      buttons: CLOSE_BUTTON,
+    };
+  }
+
   async deleteWallet(userId: number, address: string) {
     const user = await this.cache.getUser(userId);
     const accounts = user.accounts.filter((acc) => acc.address !== address);
@@ -372,25 +401,35 @@ export class TeleService {
   }
 
   async checkToken({ address, userId }: { address: string; userId: number }) {
-    const acc = await this.getAccount(userId);
+    const user = await this.cache.getUser(userId);
+    const acc = user.mainAccount ?? user.accounts.at(0);
     if (!acc)
       return {
         text: "Wallet not found",
         buttons: {
           reply_markup: {
-            inline_keyboard: [[{ text: "❎ Close", callback_data: CLOSE }]],
+            inline_keyboard: [[{ text: "✖️  Close", callback_data: CLOSE }]],
           },
         },
       };
 
-    const token = new Erc20Token(address, this.provider);
-    const { name, symbol, balance } = await token.getInfo(acc.address);
-
-    // this.market.tokenInfo(address);
+    const tokenFrom = new Erc20Token(
+      user.tokenIn ?? WETH9[chainId].address,
+      this.provider,
+    );
+    const tokenTo = new Erc20Token(address, this.provider);
+    const { name, symbol, balance } = await tokenTo.getInfo(acc.address);
+    const fromSymbol = await tokenFrom.symbol();
 
     const buttons = {
       reply_markup: {
         inline_keyboard: [
+          [
+            {
+              text: `✨ Use ${fromSymbol} to buy (click here to change) ✨`,
+              callback_data: CHANGE_INPUT_CURRENCY,
+            },
+          ],
           [
             {
               text: "💸 Buy amount",
@@ -411,7 +450,7 @@ export class TeleService {
             { text: "↪️  Buy Menu", callback_data: `sell ${address}` },
             { text: "🎛️ Menu", callback_data: "MENU" },
           ],
-          [{ text: "❎ Close", callback_data: CLOSE }],
+          [{ text: "✖️ Close", callback_data: CLOSE }],
         ],
       },
     };
@@ -453,7 +492,7 @@ export class TeleService {
         { text: "Amount", callback_data: NO_CALLBACK },
       ],
       ...buttons,
-      [{ text: "❎ Close", callback_data: CLOSE }],
+      [{ text: "✖️ Close", callback_data: CLOSE }],
     ];
 
     return {

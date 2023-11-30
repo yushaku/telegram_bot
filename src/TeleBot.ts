@@ -15,6 +15,8 @@ import {
   SET_MAX_GAS,
   SET_SPLIPAGE,
   NO_CALLBACK,
+  CHANGE_INPUT_CURRENCY,
+  CHANGE_INPUT_TOKEN_CUSTOM,
 } from "utils/replyTopic";
 import { NODE_ENV, chainId } from "utils/token";
 import { isTransaction } from "utils/types";
@@ -209,7 +211,11 @@ export class TeleBot {
       }
 
       //HACK: 📬 CRUD WALLET
-      if (action.match(/(remove_wallet|detail_wallet) (\S+)/g)) {
+      if (
+        action.match(/(remove_wallet|detail_wallet|change_input_token) (\S+)/g)
+      ) {
+        console.log(action);
+
         const [type, address] = action.split(" ");
         switch (type) {
           // MARK: Pick wallet to interact
@@ -249,6 +255,15 @@ export class TeleBot {
                 return this.bot.sendMessage(chatId, text);
               },
             );
+          }
+
+          // MARK: change input of swap
+          case "change_input_token": {
+            if (!query.message) return;
+            this.bot.deleteMessage(chatId, query.message.message_id);
+            const { text, buttons } =
+              await this.teleService.changeSwapInputToken(userId, address);
+            return this.bot.sendMessage(chatId, text, buttons);
           }
         }
       }
@@ -494,6 +509,37 @@ export class TeleBot {
         case CLOSE: {
           if (!query.message) return;
           return this.bot.deleteMessage(chatId, query.message.message_id);
+        }
+
+        // MARK: list token for change input's swap
+        case CHANGE_INPUT_CURRENCY: {
+          if (!query.message) return;
+          this.bot.deleteMessage(chatId, query.message.message_id);
+          const { text, buttons } = await this.teleService.listOptionsOfToken();
+          return this.bot.sendMessage(chatId, text, buttons);
+        }
+
+        // MARK: custom input token
+        case CHANGE_INPUT_TOKEN_CUSTOM: {
+          const sent = await this.bot.sendMessage(
+            chatId,
+            "✏️  Enter token address",
+            { reply_markup: { force_reply: true } },
+          );
+
+          return this.bot.onReplyToMessage(
+            chatId,
+            sent.message_id,
+            async (msg) => {
+              if (!msg.from?.id || !msg?.text) return;
+              if (!isAddress(msg.text)) {
+                return this.bot.sendMessage(chatId, "Invalid token address");
+              }
+              const { text, buttons } =
+                await this.teleService.changeSwapInputToken(userId, msg.text);
+              return this.bot.sendMessage(chatId, text, buttons);
+            },
+          );
         }
 
         // MARK: Import wallet
