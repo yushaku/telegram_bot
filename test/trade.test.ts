@@ -47,7 +47,7 @@ describe("Uni swap from token A to B", () => {
     expect(toReadableAmount(result.liquidity)).not.toBeNil();
   });
 
-  test("Generate trade", async () => {
+  test("Generate trade WETH => UNI", async () => {
     const result = await uniTrade.generateTrade({
       amount,
       fee: tokens.poolFee,
@@ -66,7 +66,47 @@ describe("Uni swap from token A to B", () => {
     trade = result;
   });
 
-  test("Execute trade", async () => {
+  test("Execute trade WETH => UNI", async () => {
+    if (!trade) return;
+
+    const result = await uniTrade.executeTrade({
+      trade,
+      account,
+    });
+
+    writeData(result, "tradeReceive.json");
+    expect(typeof result).not.toBe("string");
+    if (!isTransactionReceipt(result)) return;
+
+    expect(result.to).toBe(SWAP_ROUTER_ADDRESS);
+    expect(result.from).toBe(account.address);
+    expect(toReadableAmount(result.gasUsed)).toBeString();
+    expect(result.transactionHash).toBeString();
+    expect(result.blockHash).toBeString();
+    expect(result.confirmations).toBe(1);
+    expect(result.status).toBe(1);
+  });
+
+  test("Generate trade UNI => WETH", async () => {
+    const result = await uniTrade.generateTrade({
+      amount,
+      fee: tokens.poolFee,
+      tokenA: tokens.out,
+      tokenB: tokens.in,
+      account,
+    });
+
+    console.log(result?.swaps);
+    writeData(result, "trade.json");
+    expect(result?.tradeType).toBe(TradeType.EXACT_INPUT);
+    expect(result?.swaps).toBeArray();
+    expect(result?.swaps.at(0)?.inputAmount).not.toBeNil();
+    expect(result?.swaps.at(0)?.outputAmount).not.toBeNil();
+
+    trade = result;
+  });
+
+  test("Execute trade UNI => WETH", async () => {
     if (!trade) return;
 
     const result = await uniTrade.executeTrade({

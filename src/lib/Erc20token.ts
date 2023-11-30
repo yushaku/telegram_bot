@@ -17,7 +17,7 @@ export class Erc20Token {
     this.provider = provider;
     this.contract = new Contract(address, ERC20, provider);
     this.decimals = decimals;
-    this.init();
+    this.checkDecimals();
   }
 
   async getInfo(address: string) {
@@ -48,8 +48,9 @@ export class Erc20Token {
     return this.contract.decimals();
   }
 
-  async init() {
-    this.decimals = await this.getDecimal();
+  async checkDecimals() {
+    const decimals = await this.getDecimal();
+    this.decimals = decimals;
   }
 
   async approve({

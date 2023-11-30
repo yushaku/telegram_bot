@@ -20,7 +20,10 @@ export type WhaleList = {
 
 export type UserEntity = {
   name: string;
-  tokenIn: string;
+  tokenIn: {
+    address: string;
+    decimals: number;
+  };
   accounts: Account[];
   watchList: Watchlist[];
   mainAccount: Account | null;

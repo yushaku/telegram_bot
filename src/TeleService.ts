@@ -121,7 +121,10 @@ export class TeleService {
 
     const defalt = {
       name: `${first_name} ${last_name}`,
-      tokenIn: WETH9[chainId].address,
+      tokenIn: {
+        address: WETH9[chainId].address,
+        decimals: WETH9[chainId].decimals,
+      },
       accounts: [],
       watchList: [],
       mainAccount: null,
@@ -379,7 +382,10 @@ export class TeleService {
         buttons: CLOSE_BUTTON,
       };
 
-    user.tokenIn = address;
+    user.tokenIn = {
+      address,
+      decimals: token.decimals,
+    };
     this.cache.setUser(userId, user);
 
     return {
@@ -414,7 +420,7 @@ export class TeleService {
       };
 
     const tokenFrom = new Erc20Token(
-      user.tokenIn ?? WETH9[chainId].address,
+      user.tokenIn.address ?? WETH9[chainId].address,
       this.provider,
     );
     const tokenTo = new Erc20Token(address, this.provider);
@@ -505,22 +511,26 @@ export class TeleService {
     userId,
     amount,
     tokenAddress,
+    type,
   }: {
     userId: number;
     amount: number;
     tokenAddress: string;
+    type: "BUY" | "SELL";
   }) {
     const acc = await this.getAccount(userId);
     if (!acc) return { text: "Account not found", buttons: {} };
 
     if (isWETH(tokenAddress)) {
       const weth = new WrapToken(tokenAddress, "WETH", 18, this.provider);
-      const gas = await weth.estimateGas("deposit", amount);
-      const { balance } = await getBalance(acc);
+      let gas: string | undefined;
+      type === "BUY"
+        ? (gas = await weth.estimateGas("deposit", amount))
+        : (gas = await weth.estimateGas("withdraw", amount));
 
+      const { balance } = await getBalance(acc);
       const id = uuidv4();
-      this.cache.setOrder(id, { amount, tokenAddress });
-      // const res = await weth.wrap(amount, acc.privateKey);
+      this.cache.setOrder(id, { amount, tokenAddress, type });
 
       const buttonConfirm =
         balance >= amount
@@ -528,7 +538,7 @@ export class TeleService {
           : { text: "💔 Don't enough token", callback_data: CLOSE };
 
       return {
-        text: esstimateMsg({ gas, amount, balance }),
+        text: esstimateMsg({ gas, amount, balance, type }),
         buttons: {
           reply_markup: {
             inline_keyboard: [
@@ -538,7 +548,9 @@ export class TeleService {
         },
       };
     } else {
-      return this.estimateTrade({
+      console.log(`${type} ${tokenAddress}`);
+      return this.trading({
+        type,
         userId,
         amount,
         tokenAddress,
@@ -611,63 +623,84 @@ export class TeleService {
     };
   }
 
-  async estimateTrade({
+  async trading({
     userId,
     amount,
     tokenAddress,
+    type,
   }: {
     userId: number;
     amount: number;
     tokenAddress: string;
+    type: "BUY" | "SELL";
   }) {
-    const tokenA = WETH9[chainId];
-    const tokenB = new Token(chainId, tokenAddress, 18);
+    const user = await this.cache.getUser(userId);
+    const tokenIn = user.tokenIn;
+    const tokenOut = new Erc20Token(tokenAddress, this.provider);
+    const decimals = await tokenOut.getDecimal();
+
+    if (!decimals) return { text: "Wrong token address" };
+
+    let tokenA: Token;
+    let tokenB: Token;
+
+    if (type === "BUY") {
+      tokenA = new Token(chainId, tokenIn.address, tokenIn.decimals);
+      tokenB = new Token(chainId, tokenAddress, decimals);
+    } else {
+      tokenA = new Token(chainId, tokenAddress, decimals);
+      tokenB = new Token(chainId, tokenIn.address, tokenIn.decimals);
+    }
 
     const account = await this.getAccount(userId);
     if (!account) return { text: "User haven't got wallet" };
 
-    const [pair, trade] = await Promise.all([
-      this.uniswap.checkBalance({
-        walletAddress: account.address,
-        tokens: { tokenA, tokenB },
-      }),
-      this.uniswap.generateTrade({
-        tokenA,
-        tokenB,
-        amount,
-        account,
-      }),
-    ]);
+    try {
+      const [pair, trade] = await Promise.all([
+        this.uniswap.checkBalance({
+          walletAddress: account.address,
+          tokens: { tokenA, tokenB },
+        }),
+        this.uniswap.generateTrade({
+          tokenA,
+          tokenB,
+          amount,
+          account,
+        }),
+      ]);
 
-    if (!trade) {
-      return { text: "Token do not support", buttons: null };
+      if (!trade) {
+        return { text: "Token do not support", buttons: null };
+      }
+
+      if (pair.tokenA.balance < amount) {
+        return { text: `Not enough amount of ${tokenA.name}`, buttons: null };
+      }
+
+      const receive = await this.uniswap.executeTrade({ account, trade });
+      const { infoB, infoA } = await this.endSwap({
+        from: tokenA.address,
+        to: tokenB.address,
+        account: account.address,
+      });
+
+      const { numerator, denominator } = trade?.swaps[0].outputAmount;
+      const amountB = jsbiToNumber(numerator, denominator);
+
+      return {
+        text: report2Msg({
+          status: receive?.status === 1 ? "Successfully" : "Failed",
+          hash: receive?.transactionHash,
+          gas: receive?.gasUsed,
+          infoA,
+          infoB,
+          amountA: amount,
+          amountB: amountB / 10 ** infoB.decimals,
+        }),
+      };
+    } catch (error: any) {
+      return { text: error ?? "Get error when swap" };
     }
-
-    if (pair.tokenA.balance < amount) {
-      return { text: `Not enough amount of ${tokenA.name}`, buttons: null };
-    }
-
-    const receive = await this.uniswap.executeTrade({ account, trade });
-    const { infoB, infoA } = await this.endSwap({
-      from: tokenA.address,
-      to: tokenB.address,
-      account: account.address,
-    });
-
-    const { numerator, denominator } = trade?.swaps[0].outputAmount;
-    const amountB = jsbiToNumber(numerator, denominator);
-
-    return {
-      text: report2Msg({
-        status: receive?.status === 1 ? "Successfully" : "Failed",
-        hash: receive?.transactionHash,
-        gas: receive?.gasUsed,
-        infoA,
-        infoB,
-        amountA: amount,
-        amountB: amountB / 10 ** infoB.decimals,
-      }),
-    };
   }
 
   async confirmSwap({ id, userId }: { id: string; userId: number }) {
@@ -679,14 +712,18 @@ export class TeleService {
     if (!account) return "No wallet found";
 
     try {
-      if (isSwapRoute(data)) {
-        return this.swap({ data, account });
+      if (isOrder(data)) {
+        const { tokenAddress, type } = data;
+        console.log({ tokenAddress, type });
+
+        const weth = new WrapToken(tokenAddress, "WETH", 18, this.provider);
+        return type === "BUY"
+          ? weth.wrap(data.amount, account.privateKey)
+          : weth.unwrap(data.amount, account.privateKey);
       }
 
-      if (isOrder(data)) {
-        const address = data.tokenAddress;
-        const weth = new WrapToken(address, "WETH", 18, this.provider);
-        return weth.wrap(data.amount, account.privateKey);
+      if (isSwapRoute(data)) {
+        return this.swap({ data, account });
       }
 
       if (isTrade(data)) {
@@ -803,5 +840,13 @@ export class TeleService {
     });
 
     return firstAcc;
+  }
+
+  async getDefaultToken(userId: number) {
+    const user = await this.cache.getUser(userId);
+    const address = user.tokenIn.address;
+    const account = user.mainAccount;
+    const token = new Erc20Token(address, this.provider);
+    return token.getInfo(account?.address ?? "0x0");
   }
 }

@@ -99,9 +99,7 @@ export class WrapToken {
     const signer = new Wallet(privateKey, this.provider);
     const contract = new Contract(this.address, WTOKEN_ABI, signer);
     try {
-      return contract.deposit({
-        value: parseEther(String(amount)),
-      });
+      return contract.deposit({ value: parseEther(String(amount)) });
     } catch (error) {
       throw error;
     }
@@ -112,11 +110,7 @@ export class WrapToken {
     const contract = new Contract(this.address, WTOKEN_ABI, signer);
 
     try {
-      const tx = await contract.withdraw(
-        fromReadableAmount(amount, this.decimals),
-      );
-      const result = await tx.wait();
-      return result;
+      return contract.withdraw(fromReadableAmount(amount, this.decimals));
     } catch (error) {
       console.log(error);
     }

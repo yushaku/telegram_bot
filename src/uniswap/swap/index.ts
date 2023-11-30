@@ -47,9 +47,9 @@ export class UniRoute {
   async generateTrade({
     tokenA,
     tokenB,
-    fee = FeeAmount.MEDIUM,
     amount,
     account,
+    fee = FeeAmount.MEDIUM,
   }: {
     tokenA: Token;
     tokenB: Token;
@@ -58,6 +58,7 @@ export class UniRoute {
     account: Account;
   }) {
     const tokenIn = new Erc20Token(tokenA.address, this.provider);
+    await tokenIn.checkDecimals();
 
     const [currencyAmount, res] = await Promise.all([
       tokenIn.balanceOf(account.address),
@@ -69,8 +70,7 @@ export class UniRoute {
     ]);
 
     if (res === TransactionState.Failed || currencyAmount < amount) {
-      console.log(`currency amount: ${currencyAmount} less than ${amount}`);
-
+      console.error(`currency amount: ${currencyAmount} less than ${amount}`);
       throw new Error("Insufficient token balance 🆘");
     }
 

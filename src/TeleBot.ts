@@ -51,7 +51,7 @@ export class TeleBot {
         description: "List some tokens",
       },
       {
-        command: "/wallet",
+        command: "/start",
         description: "Show your wallet information",
       },
     ]);
@@ -147,7 +147,7 @@ export class TeleBot {
     });
 
     // MARK: /wallets command
-    this.bot.onText(/\/wallet/, async (msg) => {
+    this.bot.onText(/\/start/, async (msg) => {
       const id = msg.from?.id;
       if (!id) return;
 
@@ -339,6 +339,7 @@ export class TeleBot {
                     userId: msg.from.id,
                     amount: Number(msg.text),
                     tokenAddress: address,
+                    type: "BUY",
                   });
 
                   return this.bot.editMessageText(text, {
@@ -370,6 +371,7 @@ export class TeleBot {
               userId,
             });
 
+            console.log(result);
             if (!isTransaction(result)) return;
 
             const sent2 = await this.bot.editMessageText(
@@ -413,11 +415,12 @@ export class TeleBot {
             });
           }
 
-          // TODO: sell amount of token
+          // TODO: Sell amount of token
           case "sell_custom": {
+            const { symbol } = await this.teleService.getDefaultToken(userId);
             const sent = await this.bot.sendMessage(
               chatId,
-              "✏️  Enter a custom sell amount. Greater or equal to 0.01",
+              `💎 Sell this token to receive ${symbol}\n✏️  Enter a custom sell amount.\nAmount  Greater or equal to 0.01`,
               { reply_markup: { force_reply: true } },
             );
 
@@ -429,13 +432,16 @@ export class TeleBot {
                 if (Number(msg.text) >= 0.01) {
                   const sent = await this.bot.sendMessage(
                     chatId,
-                    "Estimate your price...",
+                    "Swap token...",
                   );
+
                   const { text, buttons } = await this.teleService.estimate({
                     userId: msg.from.id,
                     amount: Number(msg.text),
                     tokenAddress: address,
+                    type: "SELL",
                   });
+
                   return this.bot.editMessageText(text, {
                     chat_id: sent.chat.id,
                     message_id: sent.message_id,

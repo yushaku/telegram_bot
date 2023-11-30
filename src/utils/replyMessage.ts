@@ -164,15 +164,23 @@ export const esstimateMsg = ({
   gas,
   amount,
   balance,
+  type,
 }: {
   gas?: string;
   amount: number;
   balance: number;
-}) => `
-Your wallet balance: \`${balance}\` ETH
-Wrap ETH will take \`${gas}\` gwei for gas fee
-From \`${amount}\` ETH to \`${amount}\` WETH
+  type: "BUY" | "SELL";
+}) => {
+  const action = type === "BUY" ? "Deposit" : "Withdraw";
+  const from = type === "BUY" ? "ETH" : "WETH";
+  const to = type === "BUY" ? "WETH" : "ETH";
+
+  return `
+  Your wallet balance: \`${balance}\` ETH
+  ${action} ETH will take \`${gas}\` gwei for gas fee
+  From \`${amount}\` ${from} to \`${amount}\` ${to}
 `;
+};
 
 export const reportMsg = ({
   status,

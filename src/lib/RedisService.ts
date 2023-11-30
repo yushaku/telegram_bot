@@ -45,7 +45,11 @@ export class RedisService {
   }
 }
 
-type Order = { tokenAddress: string; amount: number };
+type Order = {
+  tokenAddress: string;
+  amount: number;
+  type: "BUY" | "SELL";
+};
 
 export function isOrder(tx: Order | any): tx is Order {
   return (tx as Order).amount !== undefined;
