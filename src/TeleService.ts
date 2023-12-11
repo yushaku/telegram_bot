@@ -6,6 +6,7 @@ import {
   esstimateMsg,
   esstimateSwap,
   report2Msg,
+  reportMsg,
   scanWalletmsg,
   tokenDetail,
   walletDetail,
@@ -35,7 +36,13 @@ import {
 import { JsonRpcProvider } from "@ethersproject/providers";
 import { Token, WETH9 } from "@uniswap/sdk-core";
 import { SwapRoute } from "@uniswap/smart-order-router";
-import { RedisService, isOrder, isSwapRoute, isTrade } from "lib/RedisService";
+import {
+  RedisService,
+  isEstimateTrade,
+  isOrder,
+  isSwapRoute,
+  isTrade,
+} from "lib/RedisService";
 import TelegramBot, { User } from "node-telegram-bot-api";
 import { v4 as uuidv4 } from "uuid";
 import { Erc20Token } from "./lib/Erc20token";
@@ -548,8 +555,7 @@ export class TeleService {
         },
       };
     } else {
-      console.log(`${type} ${tokenAddress}`);
-      return this.trading({
+      return this.estimateTrading({
         type,
         userId,
         amount,
@@ -623,7 +629,7 @@ export class TeleService {
     };
   }
 
-  async trading({
+  async estimateTrading({
     userId,
     amount,
     tokenAddress,
@@ -669,34 +675,51 @@ export class TeleService {
         }),
       ]);
 
-      if (!trade) {
-        return { text: "Token do not support", buttons: null };
+      const swap = trade.swaps.at(0);
+      if (!trade || !swap) {
+        return {
+          text: "Token do not support",
+          buttons: {
+            reply_markup: {
+              inline_keyboard: [[{ text: "⭕ No", callback_data: CLOSE }]],
+            },
+          },
+        };
       }
 
-      if (pair.tokenA.balance < amount) {
-        return { text: `Not enough amount of ${tokenA.name}`, buttons: null };
-      }
-
-      const receive = await this.uniswap.executeTrade({ account, trade });
-      const { infoB, infoA } = await this.endSwap({
-        from: tokenA.address,
-        to: tokenB.address,
-        account: account.address,
+      const id = uuidv4();
+      this.cache.setOrder(id, {
+        type: "estimate_trade",
+        tokenA,
+        tokenB,
+        amount,
       });
 
-      const { numerator, denominator } = trade?.swaps[0].outputAmount;
-      const amountB = jsbiToNumber(numerator, denominator);
+      const buttonConfirm =
+        Number(pair.tokenA.balance) >= amount
+          ? { text: "👌 Confirm", callback_data: `confirm_swap ${id}` }
+          : { text: "💔 Don't enough token", callback_data: CLOSE };
+
+      const { numerator, denominator } = swap.outputAmount;
+      const amountOut = jsbiToNumber(numerator, denominator);
 
       return {
-        text: report2Msg({
-          status: receive?.status === 1 ? "Successfully" : "Failed",
-          hash: receive?.transactionHash,
-          gas: receive?.gasUsed,
-          infoA,
-          infoB,
-          amountA: amount,
-          amountB: amountB / 10 ** infoB.decimals,
+        text: esstimateSwap({
+          tokenA: pair.tokenA.symbol,
+          tokenB: pair.tokenB.symbol,
+          amountA: pair.tokenA.balance,
+          amountB: pair.tokenA.balance,
+          amountIn: amount,
+          amountOut,
+          ratio: amount / amountOut,
         }),
+        buttons: {
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: "⭕ No", callback_data: CLOSE }, buttonConfirm],
+            ],
+          },
+        },
       };
     } catch (error: any) {
       return { text: error ?? "Get error when swap" };
@@ -709,48 +732,77 @@ export class TeleService {
       this.getAccount(userId),
     ]);
 
-    if (!account) return "No wallet found";
+    if (!account) return { text: "No wallet found" };
 
     try {
       if (isOrder(data)) {
         const { tokenAddress, type } = data;
-        console.log({ tokenAddress, type });
-
         const weth = new WrapToken(tokenAddress, "WETH", 18, this.provider);
-        return type === "BUY"
-          ? weth.wrap(data.amount, account.privateKey)
-          : weth.unwrap(data.amount, account.privateKey);
+        const tx =
+          type === "BUY"
+            ? await weth.wrap(data.amount, account.privateKey)
+            : await weth.unwrap(data.amount, account.privateKey);
+
+        if (!isTransaction(tx)) return { text: "Transaction failed" };
+        const receive = await tx.wait();
+
+        return {
+          text: reportMsg({
+            status: receive.status === 1 ? "Success" : "Failed",
+            hash: receive.transactionHash,
+            gas: receive.gasUsed,
+          }),
+        };
       }
 
-      if (isSwapRoute(data)) {
-        return this.swap({ data, account });
-      }
+      if (isEstimateTrade(data)) {
+        const { amount } = data;
+        const tokenA = new Token(
+          chainId,
+          data.tokenA.address,
+          data.tokenA.decimals,
+        );
+        const tokenB = new Token(
+          chainId,
+          data.tokenB.address,
+          data.tokenB.decimals,
+        );
 
-      if (isTrade(data)) {
-        console.log("Start confirm trade");
-        const a = await this.uniswap.executeTrade({
-          trade: data as any,
+        const trade = await this.uniswap.generateTrade({
+          tokenA,
+          tokenB,
+          amount,
           account,
         });
-        console.log(a);
-        return a;
+
+        const receive = await this.uniswap.executeTrade({ account, trade });
+        const { infoB, infoA } = await this.endSwap({
+          from: tokenA.address,
+          to: tokenB.address,
+          account: account.address,
+        });
+
+        const { numerator, denominator } = trade?.swaps[0].outputAmount;
+        const amountB = jsbiToNumber(numerator, denominator);
+
+        return {
+          text: report2Msg({
+            status: receive?.status === 1 ? "Successfully" : "Failed",
+            hash: receive?.transactionHash,
+            gas: receive?.gasUsed,
+            infoA,
+            infoB,
+            amountA: amount,
+            amountB: amountB / 10 ** infoB.decimals,
+          }),
+        };
       }
+
+      return { text: "Not found Transaction" };
     } catch (error) {
       console.log(error);
-      return "Transaction is failed";
+      return { text: "Transaction is failed" };
     }
-  }
-
-  async swap({ data, account }: { data: SwapRoute; account: Account }) {
-    const token = data?.route.at(0)?.route.input;
-    if (!data || !token) return "Transaction is expired";
-
-    console.log("start swappp");
-
-    const result = await this.uniswap.executeRoute({ account, route: data });
-    console.log(result);
-
-    return result;
   }
 
   async endSwap({
@@ -814,17 +866,6 @@ export class TeleService {
       },
     };
   }
-
-  // async getBalance(accounts: Account) {
-  //   const amount = await this.provider
-  //     .getBalance(accounts.address)
-  //     .then((data) => Number(formatEther(data)));
-  //
-  //   return {
-  //     address: accounts.address,
-  //     balance: amount,
-  //   };
-  // }
 
   async getAccount(userId: number) {
     const user = await this.cache.getUser(userId);

@@ -1,6 +1,13 @@
-import { Currency } from "@uniswap/sdk-core";
+import { Currency, Token } from "@uniswap/sdk-core";
 
 export type EstimateTrade = {
+  tokenA: Token;
+  tokenB: Token;
+  amount: number;
+  type: "estimate_trade";
+};
+
+export type Trade = {
   swaps: Swap[];
   tradeType: number;
 };

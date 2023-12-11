@@ -129,17 +129,17 @@ export const esstimateSwap = ({
   amountB,
   amountIn,
   amountOut,
-  gwei,
-  dollars,
+  gwei = "unknown",
+  dollars = "unknown",
   ratio,
 }: {
   tokenA: string;
   tokenB: string;
   amountIn: number;
-  gwei: number;
+  gwei?: number | string;
   amountA: number;
   amountB: number;
-  dollars: number;
+  dollars?: number | string;
   amountOut: number;
   ratio: number;
 }) => `

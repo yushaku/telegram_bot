@@ -2,7 +2,7 @@ import { TeleService } from "TeleService";
 import { isAddress } from "ethers/lib/utils";
 import TelegramBot from "node-telegram-bot-api";
 import { TOKENS_BUTTONS, WALLET_BUTTONS } from "utils/replyButton";
-import { reportMsg, whaleActionMsg2 } from "utils/replyMessage";
+import { whaleActionMsg2 } from "utils/replyMessage";
 import {
   WATCH_WALLET_ADD,
   BUY_TOKEN,
@@ -19,7 +19,6 @@ import {
   CHANGE_INPUT_TOKEN_CUSTOM,
 } from "utils/replyTopic";
 import { NODE_ENV, chainId } from "utils/token";
-import { isTransaction } from "utils/types";
 import { shortenAddress } from "utils/utils";
 import { Tracker } from "./tracker";
 import { CoinMarket } from "./market";
@@ -365,37 +364,16 @@ export class TeleBot {
             });
 
             if (typeof sent === "boolean") return;
-
-            let result = await this.teleService.confirmSwap({
+            let { text } = await this.teleService.confirmSwap({
               id: address,
               userId,
             });
 
-            console.log(result);
-            if (!isTransaction(result)) return;
-
-            const sent2 = await this.bot.editMessageText(
-              reportMsg({ status: "Pending", hash: result.hash }),
-              {
-                chat_id: sent.chat.id,
-                message_id: sent.message_id,
-              },
-            );
-
-            if (typeof sent2 === "boolean") return;
-            const received = await result.wait();
-            return this.bot.editMessageText(
-              reportMsg({
-                status: received.status === 1 ? "Success" : "Failed",
-                hash: received.transactionHash,
-                gas: received.gasUsed,
-              }),
-              {
-                parse_mode: "Markdown",
-                chat_id: sent2.chat.id,
-                message_id: sent2.message_id,
-              },
-            );
+            return this.bot.editMessageText(text, {
+              parse_mode: "Markdown",
+              chat_id: sent.chat.id,
+              message_id: sent.message_id,
+            });
           }
 
           //MARK: get top holders of token
@@ -618,7 +596,17 @@ export class TeleBot {
                     name: msg.text,
                     address,
                   });
-                  this.bot.sendMessage(chatId, text);
+                  const sent2 = await this.bot.sendMessage(chatId, text);
+                  const { text: text2, buttons } =
+                    await this.teleService.watchList(userId);
+
+                  this.bot.editMessageText(text2, {
+                    chat_id: sent2.chat.id,
+                    message_id: sent2.message_id,
+                    parse_mode: "Markdown",
+                    disable_web_page_preview: true,
+                    reply_markup: buttons,
+                  });
                 },
               );
             },

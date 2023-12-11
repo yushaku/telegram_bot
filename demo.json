@@ -1,30 +1,88 @@
 {
-  "name": "Son Lv",
-  "accounts": [
+  "swaps": [
     {
-      "address": "0x4aBfCf64bB323CC8B65e2E69F2221B14943C6EE1",
-      "privateKey": "0x13d8c2dc8286cf55199a5ea81371813b1c09ae0426f4fb922611b5ab264d44f2",
-      "mnemonic": null
-    },
-    {
-      "address": "0xDCF14807Ca8a640aDf369655f9aD1443077bFBf2",
-      "privateKey": "0x82387ef67b43b3381bcb066c1a810fd2617f8d5498aeeab1ceea08ca6dca1d55",
-      "mnemonic": null
+      "inputAmount": {
+        "numerator": [660865024, 931322574],
+        "denominator": [1],
+        "currency": {
+          "chainId": 1,
+          "decimals": 18,
+          "isNative": false,
+          "isToken": true,
+          "address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+        },
+        "decimalScale": [660865024, 931322574]
+      },
+      "outputAmount": {
+        "numerator": [78472333, 2],
+        "denominator": [1],
+        "currency": {
+          "chainId": 1,
+          "decimals": 6,
+          "isNative": false,
+          "isToken": true,
+          "address": "0xdAC17F958D2ee523a2206206994597C13D831ec7"
+        },
+        "decimalScale": [1000000]
+      },
+      "route": {
+        "_midPrice": null,
+        "pools": [
+          {
+            "token0": {
+              "chainId": 1,
+              "decimals": 18,
+              "isNative": false,
+              "isToken": true,
+              "address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+            },
+            "token1": {
+              "chainId": 1,
+              "decimals": 6,
+              "isNative": false,
+              "isToken": true,
+              "address": "0xdAC17F958D2ee523a2206206994597C13D831ec7"
+            },
+            "fee": 3000,
+            "sqrtRatioX96": [162496388, 164875760, 3247071],
+            "liquidity": [354071663, 76344425, 7],
+            "tickCurrent": -199211,
+            "tickDataProvider": {}
+          }
+        ],
+        "tokenPath": [
+          {
+            "chainId": 1,
+            "decimals": 18,
+            "isNative": false,
+            "isToken": true,
+            "address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+          },
+          {
+            "chainId": 1,
+            "decimals": 6,
+            "isNative": false,
+            "isToken": true,
+            "address": "0xdAC17F958D2ee523a2206206994597C13D831ec7"
+          }
+        ],
+        "input": {
+          "chainId": 1,
+          "decimals": 18,
+          "isNative": false,
+          "isToken": true,
+          "address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+        },
+        "output": {
+          "chainId": 1,
+          "decimals": 6,
+          "isNative": false,
+          "isToken": true,
+          "address": "0xdAC17F958D2ee523a2206206994597C13D831ec7"
+        }
+      }
     }
   ],
-  "slippage": 55,
-  "maxGas": 13,
-  "mainAccount": {
-    "address": "0x4aBfCf64bB323CC8B65e2E69F2221B14943C6EE1",
-    "privateKey": "0x13d8c2dc8286cf55199a5ea81371813b1c09ae0426f4fb922611b5ab264d44f2",
-    "mnemonic": null
-  },
-  "watchList": [
-    {
-      "address": "0xBc2C6cD5013585aC720160eFCB1fecED30837177",
-      "name": "meme guy"
-    },
-    { "address": "0x4aBfCf64bB323CC8B65e2E69F2221B14943C6EE1", "name": "tigon" }
-  ]
+  "tradeType": 0
 }
 

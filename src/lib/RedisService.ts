@@ -1,7 +1,7 @@
 import { SwapRoute } from "@uniswap/smart-order-router";
 import Redis from "ioredis";
 import { UserEntity, WhaleList } from "../utils/types";
-import { EstimateTrade } from "@/uniswap/swap/type";
+import { EstimateTrade, Trade } from "@/uniswap/swap/type";
 
 export class RedisService {
   readonly redis: Redis;
@@ -23,14 +23,14 @@ export class RedisService {
 
   async setOrder(id: string, order: Order): Promise<void>;
   async setOrder(id: string, order: SwapRoute): Promise<void>;
+  async setOrder(id: string, order: Trade): Promise<void>;
+  async setOrder(id: string, order: EstimateTrade): Promise<void>;
 
-  async setOrder(id: string, order: Order | SwapRoute) {
+  async setOrder(id: string, order: Order | SwapRoute | Trade | EstimateTrade) {
     this.redis.set(`order/${id}`, JSON.stringify(order), "PX", 60 * 1000);
   }
 
-  async getOrder(
-    id: string,
-  ): Promise<Order | SwapRoute | EstimateTrade | undefined> {
+  async getOrder(id: string): Promise<Order | SwapRoute | Trade | undefined> {
     const route = await this.redis.get(`order/${id}`);
     return JSON.parse(route ?? "{ }");
   }
@@ -52,13 +52,17 @@ type Order = {
 };
 
 export function isOrder(tx: Order | any): tx is Order {
-  return (tx as Order).amount !== undefined;
+  return (tx as Order).type === "BUY" || (tx as Order).type === "SELL";
 }
 
 export function isSwapRoute(tx: SwapRoute | any): tx is SwapRoute {
   return (tx as SwapRoute).route !== undefined;
 }
 
-export function isTrade(tx: EstimateTrade | any): tx is EstimateTrade {
-  return (tx as EstimateTrade).swaps !== undefined;
+export function isTrade(tx: Trade | any): tx is Trade {
+  return (tx as Trade).swaps !== undefined;
+}
+
+export function isEstimateTrade(tx: EstimateTrade | any): tx is EstimateTrade {
+  return (tx as EstimateTrade).type === "estimate_trade";
 }
