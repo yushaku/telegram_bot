@@ -1,7 +1,7 @@
 import { UniRoute } from "@/uniswap";
 import { SWAP_ROUTER_ADDRESS } from "@/utils/constants";
 import { getProvider } from "@/utils/networks";
-import { NODE_ENV, UNI, chainId } from "@/utils/token";
+import { NODE_ENV, USDC, chainId } from "@/utils/token";
 import { isTransactionReceipt } from "@/utils/types";
 import { toReadableAmount } from "@/utils/utils";
 import { WETH9 } from "@uniswap/sdk-core";
@@ -19,7 +19,7 @@ const account = {
 
 const tokens = {
   in: WETH9[chainId],
-  out: UNI,
+  out: USDC,
   poolFee: FeeAmount.MEDIUM,
 };
 
@@ -47,7 +47,7 @@ describe("Uni swap from token A to B", () => {
     });
 
     writeData(result, "trade.json");
-    console.log(result);
+    console.log({ result });
     expect(result).not.toBeNull();
     expect(result?.methodParameters).not.toBeNull();
     expect(result?.methodParameters?.calldata).toBeString();

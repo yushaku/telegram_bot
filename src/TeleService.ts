@@ -24,7 +24,7 @@ import {
   WATCH_WALLET_ADD,
 } from "@/utils/replyTopic";
 import { UNI, WETH, chainId, isWETH } from "@/utils/token";
-import { Account, isTransaction } from "@/utils/types";
+import { isTransaction } from "@/utils/types";
 import {
   bigintToNumber,
   createAccount,
@@ -35,31 +35,23 @@ import {
 } from "@/utils/utils";
 import { JsonRpcProvider } from "@ethersproject/providers";
 import { Token, WETH9 } from "@uniswap/sdk-core";
-import { SwapRoute } from "@uniswap/smart-order-router";
-import {
-  RedisService,
-  isEstimateTrade,
-  isOrder,
-  isSwapRoute,
-  isTrade,
-} from "lib/RedisService";
+import { RedisService, isEstimateTrade, isOrder } from "lib/RedisService";
 import TelegramBot, { User } from "node-telegram-bot-api";
 import { v4 as uuidv4 } from "uuid";
 import { Erc20Token } from "./lib/Erc20token";
 import { CoinMarket } from "./market";
 import { CHANGE_SWAP_INPUT_TOKEN, CLOSE_BUTTON } from "./utils/replyButton";
+import { WhaleService } from "./database/services/Whale";
 
 export class TeleService {
   private provider: JsonRpcProvider;
-  private cache: RedisService;
-  private uniswap: UniswapService;
-  private market: CoinMarket;
+  private cache = new RedisService();
+  private market = new CoinMarket();
+  private uniswap = new UniswapService();
+  private whaleService = new WhaleService();
 
   constructor() {
     this.provider = getProvider();
-    this.uniswap = new UniswapService();
-    this.cache = new RedisService();
-    this.market = new CoinMarket();
   }
 
   async hi(userId: number) {
@@ -201,7 +193,7 @@ export class TeleService {
     const data = await this.market.scanWallet(address);
 
     const list: { text: string; callback_data: string }[][] = [];
-    data.tokens.forEach((token) => {
+    data?.tokens?.forEach((token) => {
       const amount =
         token.balance / 10 ** Number(token.tokenInfo.decimals ?? 18);
       if (amount < 0.0001) return;

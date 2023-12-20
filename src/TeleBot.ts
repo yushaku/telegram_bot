@@ -2,7 +2,6 @@ import { TeleService } from "TeleService";
 import { isAddress } from "ethers/lib/utils";
 import TelegramBot from "node-telegram-bot-api";
 import { TOKENS_BUTTONS, WALLET_BUTTONS } from "utils/replyButton";
-import { whaleActionMsg2 } from "utils/replyMessage";
 import {
   WATCH_WALLET_ADD,
   BUY_TOKEN,
@@ -18,27 +17,21 @@ import {
   CHANGE_INPUT_CURRENCY,
   CHANGE_INPUT_TOKEN_CUSTOM,
 } from "utils/replyTopic";
-import { NODE_ENV, chainId } from "utils/token";
 import { shortenAddress } from "utils/utils";
 import { Tracker } from "./tracker";
-import { CoinMarket } from "./market";
 
 export class TeleBot {
   private readonly bot: TelegramBot;
   private teleService: TeleService;
   private tracker: Tracker;
-  private market: CoinMarket;
 
   constructor(teleId: string) {
     this.bot = new TelegramBot(teleId, { polling: true });
     this.teleService = new TeleService();
     this.tracker = new Tracker(this.bot);
-    this.market = new CoinMarket();
   }
 
-  init() {
-    console.info(`🤖 Telegram bot is running`);
-    console.info(`🚀 Run on Chain: ${NODE_ENV} with chain id: ${chainId}`);
+  async init() {
     this.tracker.track();
     this.bot.setMyCommands([
       {
@@ -59,11 +52,12 @@ export class TeleBot {
   }
 
   listen() {
-    // this.bot.onText(/\/sniper/, (msg) => {
-    //   if (!msg.from) return;
-    //   this.teleService.commandStart(msg.from);
-    //   this.bot.sendMessage(msg.chat.id, START_MESSAGE, START_BUTTONS);
-    // });
+    this.bot.onText(/\/test/, (msg) => {
+      this.bot.sendMessage(msg.chat.id, "Testing");
+      this.tracker.getDetailTX(
+        "0xa27467a5e3b2e97bb905c5194836f98d952f6391517da990f4f3a771ad8fa43a",
+      );
+    });
 
     // MARK: /watch whale's wallet
     this.bot.onText(/\/watch/, async (msg) => {
@@ -82,27 +76,27 @@ export class TeleBot {
       });
     });
 
-    this.bot.onText(/\/test/, async (msg) => {
-      if (!msg.from) return;
-      const sent = await this.bot.sendMessage(msg.chat.id, "Processing...");
-      const data = await this.tracker.getTx(
-        "0x6a07a78b6fa4617fdc1ef482b134a1bda0c2e229d12b82c24ffdf2a11ec6ed01",
-      );
-      if (!data) return;
-      const { sendTx, receiveTx, hash } = data;
-      this.bot.editMessageText(
-        whaleActionMsg2({
-          hash,
-          sendTx,
-          receiveTx,
-        }),
-        {
-          message_id: sent.message_id,
-          chat_id: sent.chat.id,
-          parse_mode: "Markdown",
-        },
-      );
-    });
+    // this.bot.onText(/\/test/, async (msg) => {
+    //   if (!msg.from) return;
+    //   const sent = await this.bot.sendMessage(msg.chat.id, "Processing...");
+    //   const data = await this.tracker.getTx(
+    //     "0x6a07a78b6fa4617fdc1ef482b134a1bda0c2e229d12b82c24ffdf2a11ec6ed01",
+    //   );
+    //   if (!data) return;
+    //   const { sendTx, receiveTx, hash } = data;
+    //   this.bot.editMessageText(
+    //     whaleActionMsg2({
+    //       hash,
+    //       sendTx,
+    //       receiveTx,
+    //     }),
+    //     {
+    //       message_id: sent.message_id,
+    //       chat_id: sent.chat.id,
+    //       parse_mode: "Markdown",
+    //     },
+    //   );
+    // });
 
     this.bot.onText(/\/trade/, async (msg) => {
       if (!msg.from) return;
@@ -239,7 +233,9 @@ export class TeleBot {
             const sent = await this.bot.sendMessage(
               chatId,
               "⚠️  Are you sure?  type 'yes' to confirm ⚠️",
-              { reply_markup: { force_reply: true } },
+              {
+                reply_markup: { force_reply: true },
+              },
             );
 
             return this.bot.onReplyToMessage(
@@ -276,7 +272,9 @@ export class TeleBot {
             const sent = await this.bot.sendMessage(
               chatId,
               "⚠️  Are you sure?  type 'yes' to confirm ⚠️",
-              { reply_markup: { force_reply: true } },
+              {
+                reply_markup: { force_reply: true },
+              },
             );
 
             return this.bot.onReplyToMessage(
@@ -508,7 +506,9 @@ export class TeleBot {
           const sent = await this.bot.sendMessage(
             chatId,
             "✏️  Enter token address",
-            { reply_markup: { force_reply: true } },
+            {
+              reply_markup: { force_reply: true },
+            },
           );
 
           return this.bot.onReplyToMessage(
@@ -531,7 +531,9 @@ export class TeleBot {
           const replyMsg = await this.bot.sendMessage(
             chatId,
             "Imput your secret key or mnemonic here:",
-            { reply_markup: { force_reply: true } },
+            {
+              reply_markup: { force_reply: true },
+            },
           );
 
           return this.bot.onReplyToMessage(
@@ -563,7 +565,9 @@ export class TeleBot {
           const sent1 = await this.bot.sendMessage(
             chatId,
             "Enter wallet address",
-            { reply_markup: { force_reply: true } },
+            {
+              reply_markup: { force_reply: true },
+            },
           );
 
           return this.bot.onReplyToMessage(
@@ -581,7 +585,9 @@ export class TeleBot {
               const sent2 = await this.bot.sendMessage(
                 sent1.chat.id,
                 "Enter wallet name",
-                { reply_markup: { force_reply: true } },
+                {
+                  reply_markup: { force_reply: true },
+                },
               );
 
               this.bot.onReplyToMessage(

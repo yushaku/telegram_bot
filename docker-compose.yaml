@@ -24,7 +24,7 @@ services:
     container_name: mongo_db
     image: mongo:6.0.2-focal
     ports:
-      - ${MONGO_PORT:-5433}:5433
+      - ${MONGO_PORT:-27017}:27017
     volumes:
       - .docker/mongodb:/data/db
     environment:
