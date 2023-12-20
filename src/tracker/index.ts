@@ -4,24 +4,23 @@ import { whaleActionMsg } from "@/utils/replyMessage";
 import { REDIS_WHALE_WALLET } from "@/utils/replyTopic";
 import { EventWhaleWallet, WhaleList } from "@/utils/types";
 import TelegramBot from "node-telegram-bot-api";
-import Web3, { FMT_BYTES, FMT_NUMBER, Log, utils } from "web3";
+import Web3, { FMT_BYTES, FMT_NUMBER, Log } from "web3";
 import { Erc20Token } from "@/lib/Erc20token";
+import { DexMap, hashOfTransferTx } from "@/utils/constants";
+import { ParseLog } from "./types";
+import { CoinMarket } from "@/market";
+import { stableCoinList } from "@/utils/stableCoin";
+import { MoralistokenPrice } from "@/market/types";
+import { WhaleService } from "@/database/services/Whale";
 
 const wsProvider = new Web3.providers.WebsocketProvider(ws);
 const provider = getProvider();
 
-export type ParseLog = {
-  name: string;
-  symbol: string;
-  amount: number;
-  from: string;
-  to: string;
-  address: string;
-};
-
 export class Tracker {
   private provider = new Web3(url);
   private socket = new Web3(wsProvider);
+  private market = new CoinMarket();
+
   private cache = new RedisService();
   private bot: TelegramBot;
   private wallets: Set<string> = new Set();
@@ -30,10 +29,11 @@ export class Tracker {
   constructor(bot: TelegramBot) {
     this.bot = bot;
     this.init();
-    console.log(
-      "Does the provider support subscriptions?:",
-      wsProvider.supportsSubscriptions(),
-    );
+    const mess =
+      wsProvider.supportsSubscriptions() === true
+        ? "✅ Provider support subscription 🌐"
+        : "⭕ Provider doesn't support subscription";
+    console.info(mess);
   }
 
   async init() {
@@ -42,7 +42,7 @@ export class Tracker {
     this.whale = whale;
 
     this.cache.redis.subscribe(REDIS_WHALE_WALLET, (err) => {
-      if (err) console.log(err);
+      if (err) console.error(err);
     });
 
     this.cache.redis.on("message", (channel, message) => {
@@ -55,6 +55,7 @@ export class Tracker {
           this.whale[wallet].subscribe[channelId] = channelId;
           this.wallets.add(wallet);
           break;
+
         case "remove":
           delete this.whale[wallet].subscribe[channelId];
           const check = Object.keys(this.whale[wallet].subscribe).length === 0;
@@ -101,18 +102,78 @@ export class Tracker {
     }
   }
 
-  async test() {
-    // Get the list of accounts in the connected node which is in this case: Ganache.
-    const accounts = await this.provider.eth.getAccounts();
-    console.log(accounts);
-    //
-    // Send a transaction to the network
-    const transactionReceipt = await this.provider.eth.sendTransaction({
-      from: accounts[0],
-      to: accounts[1],
-      value: utils.toWei("0.001", "ether"),
+  async accountHisory(address: string) {
+    const data = await this.market.getWalletHistory(address);
+
+    for (let i = 0; i < data?.result.length; i++) {
+      const tx = data.result[i];
+      const userAdd = tx.from;
+      const blockNumber = tx.blockNumber;
+
+      if (!DexMap.has(tx.to.toLocaleLowerCase())) continue;
+      const receive = await this.getDetailTX(tx.hash);
+      // receive.forEach(async (log) => {
+      //   if (!log) return;
+      //   const price = await this.market.tokenPrice({
+      //     tokenAddr: log.address,
+      //     blockNumber,
+      //   });
+      //
+      //   console.log(price);
+      //
+      //   if (log.from === userAdd) {
+      //     console.log(log);
+      //   } else if (log.to === userAdd) {
+      //     console.log(log);
+      //   }
+      // });
+    }
+  }
+
+  async getDetailTX(hash: string) {
+    const detail = await this.provider.eth.getTransactionReceipt(hash);
+    const userAdd = detail.from;
+
+    const promiseTransfers = detail.logs
+      .filter((log) => {
+        const hashFunc = log.topics?.at(0);
+        const log1 = log.topics?.at(1)?.toString();
+        const log2 = log.topics?.at(2)?.toString();
+
+        const from = "0x" + log1?.slice(26);
+        const to = "0x" + log2?.slice(26);
+
+        if (
+          hashFunc === hashOfTransferTx &&
+          (from === userAdd || to === userAdd)
+        ) {
+          return true;
+        }
+      })
+      .map((log) => this.convertLog(log));
+
+    // return Promise.all(promiseTransfers);
+    const receive = await Promise.all(promiseTransfers);
+
+    receive.forEach(async (log) => {
+      if (!log) return;
+      let price: Partial<MoralistokenPrice> = {
+        usdPriceFormatted: "1",
+      };
+
+      if (!stableCoinList.has(log.address)) {
+        price = await this.market.tokenPrice({
+          tokenAddr: log.address,
+          blockNumber: Number(detail.blockNumber),
+        });
+      }
+
+      if (log.from === userAdd) {
+        console.log(log);
+      } else if (log.to === userAdd) {
+        console.log(log);
+      }
     });
-    console.log("Transaction Receipt:", transactionReceipt);
   }
 
   async getTx(hash: string) {
@@ -134,9 +195,8 @@ export class Tracker {
       receiveTx,
     };
   }
-  async convertLog(log: Log): Promise<ParseLog | undefined> {
-    console.log(log);
 
+  async convertLog(log: Log): Promise<ParseLog | undefined> {
     const from = log.topics?.at(1)?.toString();
     const to = log.topics?.at(2)?.toString();
 

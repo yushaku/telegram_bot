@@ -1,8 +1,14 @@
 import { httpClient } from "@/utils/axiosClient";
-import { COIN_MARKET_KEY, ETH_PLORER } from "@/utils/constants";
-import { ScanWallet, TopHolder } from "./types";
+import {
+  COIN_MARKET_KEY,
+  ETHERSCAN_ID,
+  ETH_PLORER,
+  MORALIS_KEY,
+} from "@/utils/constants";
+import { MoralistokenPrice, ScanWallet, TopHolder } from "./types";
 import { chainId } from "@/utils/token";
 import { ChainId } from "@uniswap/sdk-core";
+import { EtherscanHistory } from "@/tracker/types";
 
 const url = () => {
   switch (chainId) {
@@ -19,15 +25,42 @@ const url = () => {
   }
 };
 
+const moralisChain = {
+  1: "eth",
+  5: "goerli",
+  11155111: "sepolia",
+  137: "polygon",
+  80001: "mumbai",
+  100: "gnosis",
+  56: "bsc",
+  8453: "base",
+  42161: "arbitrum",
+};
+
 export class CoinMarket {
   protected coinmarket = httpClient({
     baseURL: "https://pro-api.coinmarketcap.com/v1/",
-    key: COIN_MARKET_KEY,
+    headers: {
+      Authorization: `Bearer ${COIN_MARKET_KEY}`,
+      "X-CMC_PRO_API_KEY": COIN_MARKET_KEY,
+    },
   });
 
   protected ethplorer = httpClient({
     baseURL: url(),
-    key: ETH_PLORER,
+    headers: {
+      Authorization: `Bearer ${ETH_PLORER}`,
+      "X-CMC_PRO_API_KEY": ETH_PLORER,
+    },
+  });
+
+  protected moralis = httpClient({
+    baseURL: "https://deep-index.moralis.io/api/v2.2/",
+    headers: { "X-API-Key": MORALIS_KEY },
+  });
+
+  protected etherscan = httpClient({
+    baseURL: "https://api.etherscan.io/api/",
   });
 
   async tokenInfo(address: string) {
@@ -71,14 +104,45 @@ export class CoinMarket {
     return res.data?.holders as TopHolder[] | undefined;
   }
 
-  async getHistory(address: string, limit = 10, type = "transfer") {
-    const res = await this.ethplorer.get(`getAddressHistory/${address}`, {
+  // async getHistory(address: string, limit = 10, type = "transfer") {
+  //   const res = await this.ethplorer.get(`getAddressHistory/${address}`, {
+  //     params: {
+  //       apiKey: "freekey",
+  //       limit,
+  //     },
+  //   });
+  //   Bun.write("./ts.json", JSON.stringify(res.data, null, 2));
+  //   return res.data;
+  // }
+
+  async getWalletHistory(address: string) {
+    const res = await this.etherscan.get("?module=account", {
       params: {
-        apiKey: "freekey",
-        limit,
+        address,
+        action: "txlist",
+        startblock: 0,
+        endblock: 9999999999,
+        apikey: ETHERSCAN_ID,
       },
     });
-    Bun.write("./ts.json", JSON.stringify(res.data, null, 2));
-    return res.data;
+
+    return res.data as EtherscanHistory;
+  }
+
+  async tokenPrice({
+    tokenAddr,
+    blockNumber,
+  }: {
+    tokenAddr: string;
+    blockNumber: number | string;
+  }) {
+    const res = await this.moralis.get(`erc20/${tokenAddr}/price`, {
+      params: {
+        chain: moralisChain[chainId as keyof typeof moralisChain],
+        exchange: "uniswapv2",
+        to_block: blockNumber,
+      },
+    });
+    return res.data as MoralistokenPrice;
   }
 }

@@ -64,3 +64,24 @@ export type TopHolder = {
   balance: number;
   share: number;
 };
+
+export type MoralistokenPrice = {
+  tokenName: string;
+  tokenSymbol: string;
+  tokenLogo: string;
+  tokenDecimals: string;
+  nativePrice: {
+    value: string;
+    decimals: number;
+    name: string;
+    symbol: string;
+    address: string;
+  };
+  usdPrice: number;
+  usdPriceFormatted: string;
+  exchangeName: string;
+  exchangeAddress: string;
+  tokenAddress: string;
+  toBlock: string;
+  priceLastChangedAtBlock: string;
+};

@@ -4,7 +4,6 @@
 import { Token, ChainId, WETH9 } from "@uniswap/sdk-core";
 import { ExtendedEther, USDC_GOERLI, USDC_MAINNET } from "@uniswap/smart-order-router";
 import { z } from "zod";
-import { RPC_URLS } from "./networks";
 
 const CHAIN = Object.values(ChainId).filter(value => typeof value !== 'number') as string[];
 
@@ -28,7 +27,7 @@ export const chainId = chainList.get(NODE_ENV) ?? ChainId.MAINNET;
 export const MATIC_POLYGON = new Token(ChainId.POLYGON, '0x0000000000000000000000000000000000001010', 18, 'MATIC')
 export const MATIC_MUMBAI = new Token(ChainId.POLYGON_MUMBAI, '0x0000000000000000000000000000000000001010', 18, 'MATIC')
 
-export const MAIN_ETH  = WETH9[chainId]
+export const WETH  = WETH9[chainId]
 export const MAIN_DAI  = new Token(ChainId.MAINNET, "0x6B175474E89094C44Da98b954EedeAC495271d0F", 18);
 export const MAIN_WETH = new Token(ChainId.MAINNET, "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", 18);
 export const MAIN_USDC = new Token(ChainId.MAINNET, "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", 6)
@@ -39,7 +38,6 @@ export const MAIN_UNI  = new Token(ChainId.MAINNET, "0x1f9840a85d5aF5bf1D1762F92
 // export const ZKSYNC_WEAV = new Token(SKSYNC, "0xA4c011A4C65b01198a2FF314B7557bB0C798BFB8", 18)
 export const GOERLI_WETH = new Token(ChainId.GOERLI, "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6", 18);
 
-export const WETH = NODE_ENV === 'GOERLI' ? GOERLI_WETH : MAIN_WETH 
 export const USDC = NODE_ENV === 'GOERLI' ? USDC_GOERLI : USDC_MAINNET 
 export const UNI  = new Token(chainId, "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984", 18) 
 export const ONEINCH = new Token(chainId, "0x111111111117dC0aa78b770fA6A738034120C302", 18);

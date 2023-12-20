@@ -26,10 +26,10 @@ axiosClient.interceptors.response.use(
 
 export const httpClient = ({
   baseURL,
-  key,
+  headers,
 }: {
   baseURL: string;
-  key?: string;
+  headers?: Record<string, string>;
 }) => {
   const client = axios.create({
     baseURL,
@@ -37,8 +37,7 @@ export const httpClient = ({
     headers: {
       Accept: "application/json",
       "Content-Type": "json",
-      Authorization: `Bearer ${key}`,
-      "X-CMC_PRO_API_KEY": key,
+      ...headers,
     },
   });
 

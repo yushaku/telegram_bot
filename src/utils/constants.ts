@@ -4,22 +4,28 @@ import { chainId } from "./token";
 
 const envSchema = z.object({
   TELE_BOT_ID: z.string(),
-  SERVER_URL: z.string(),
   INFURA_KEY: z.string(),
   ETHERSCAN_ID: z.string(),
+  MORALIS_KEY: z.string(),
   ONE_INCH_KEY: z.string(),
   COIN_MARKET_KEY: z.string(),
   ETH_PLORER: z.string(),
+  ALCHEMY_KEY: z.string(),
+  MONGO_NAME: z.string(),
+  MONGODB_URL: z.string().default("mongodb://localhost:27017"),
 });
 
 export const {
   TELE_BOT_ID,
-  SERVER_URL,
   INFURA_KEY,
   ETHERSCAN_ID,
   ONE_INCH_KEY,
   COIN_MARKET_KEY,
   ETH_PLORER,
+  ALCHEMY_KEY,
+  MONGO_NAME,
+  MONGODB_URL,
+  MORALIS_KEY,
 } = envSchema.parse(process.env);
 
 export const BROADCAST_API_URL = `https://api.1inch.dev/tx-gateway/v1.1/${chainId}/broadcast/`;
@@ -34,8 +40,6 @@ export const protocols: Protocol[] = [Protocol.V2, Protocol.V3, Protocol.MIXED];
 
 export const TELEGRAM_API = `https://api.telegram.org/bot${TELE_BOT_ID}`;
 export const URI = `webhook/${TELE_BOT_ID}`;
-export const WEBHOOK_URL = SERVER_URL + URI;
-export const CRYPTO_API = "https://min-api.cryptocompare.com/data/price?fsym";
 
 export const V2_SWAP_ROUTER_ADDRESS =
   "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45";
@@ -71,3 +75,14 @@ export const NONFUNGIBLE_POSITION_MANAGER_ABI = [
 export const MAX_FEE_PER_GAS = 100000000000;
 export const MAX_PRIORITY_FEE_PER_GAS = 100000000000;
 export const TOKEN_AMOUNT_TO_APPROVE_FOR_TRANSFER = 2000;
+
+export const hashOfTransferTx =
+  "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
+
+export const DEX = {
+  "0x3fc91a3afd70395cd496c647d5a6cc9d4b2b7fad": "Uniswap V3 router",
+  "0x881d40237659c251811cec9c364ef91dc08d300c": "Metamask swap",
+  "0xdef171fe48cf0115b1d80b88dc8eab59176fee57": "Mega swap",
+};
+
+export const DexMap = new Map(Object.entries(DEX));
