@@ -1,76 +1,60 @@
-import { Token, WETH9 } from "@uniswap/sdk-core";
-import { USDC_GOERLI } from "@uniswap/smart-order-router";
-import { FeeAmount } from "@uniswap/v3-sdk";
 import { describe, expect, test } from "bun:test";
 import { Erc20Token } from "lib/Erc20token";
 import { SWAP_ROUTER_ADDRESS } from "utils/constants";
-import { getProvider } from "utils/networks";
-import { chainId } from "utils/token";
+import { UNI } from "utils/token";
 
-export const config = {
-  wallet: {
-    address: "0x4aBfCf64bB323CC8B65e2E69F2221B14943C6EE1",
-    privateKey:
-      "0x13d8c2dc8286cf55199a5ea81371813b1c09ae0426f4fb922611b5ab264d44f2",
-  },
-  wallet2: "0xDCF14807Ca8a640aDf369655f9aD1443077bFBf2",
-  tokens: {
-    in: WETH9[chainId],
-    amountIn: 1,
-    out: USDC_GOERLI,
-    poolFee: FeeAmount.MEDIUM,
-  },
+export const wallet = {
+  address: "0x4aBfCf64bB323CC8B65e2E69F2221B14943C6EE1",
+  privateKey:
+    "0x13d8c2dc8286cf55199a5ea81371813b1c09ae0426f4fb922611b5ab264d44f2",
 };
+export const wallet2 = "0xDCF14807Ca8a640aDf369655f9aD1443077bFBf2";
 
 const amount = 10;
-
-const ysk = new Token(
-  chainId,
-  "0x461d35B87F3271c42bE1f553930aeddda6c2F53b",
-  18,
-  "YSK",
-);
-const provider = getProvider();
-const yushaku = new Erc20Token(ysk.address, provider);
+const uniswap = new Erc20Token(UNI.address);
 
 describe("test function of erc20", () => {
   test("get amount", async () => {
-    const res = await yushaku.getInfo(config.wallet.address);
+    const res = await uniswap.getInfo(wallet.address);
+    const { name, decimals, balance, symbol } = res;
+    console.log({ name, decimals, balance, symbol });
 
-    expect(res.symbol).toBe(ysk.symbol);
-    expect(res.balance).not.toBeNil();
+    expect(decimals).toBe(UNI.decimals);
+    expect(name).toBe(UNI.name);
+    expect(symbol).toBe(UNI.symbol);
+    expect(balance).not.toBeNil();
   });
 
   test("check allownce", async () => {
-    const approved1 = await yushaku.allowance(
-      config.wallet.address,
+    const approved1 = await uniswap.allowance(
+      wallet.address,
       SWAP_ROUTER_ADDRESS,
     );
 
-    const res = await yushaku.checkTokenApproval({
-      account: config.wallet,
+    const res = await uniswap.checkTokenApproval({
+      account: wallet,
       amount: amount + approved1,
       spender: SWAP_ROUTER_ADDRESS,
     });
 
     expect(res.transactionHash).toBeString();
     expect(res.blockHash).toBeString();
-    expect(res.to).toBe(ysk.address);
-    expect(res.from).toBe(config.wallet.address);
+    expect(res.to).toBe(UNI.address);
+    expect(res.from).toBe(wallet.address);
   });
 
   test("Transfer", async () => {
-    const balance1 = await yushaku.balanceOf(config.wallet.address);
-    const balance2 = await yushaku.balanceOf(config.wallet2);
+    const balance1 = await uniswap.balanceOf(wallet.address);
+    const balance2 = await uniswap.balanceOf(wallet2);
 
-    await yushaku.transfer({
-      to: config.wallet2,
+    await uniswap.transfer({
+      to: wallet2,
       amount,
-      privateKey: config.wallet.privateKey,
+      privateKey: wallet.privateKey,
     });
 
-    const balance11 = await yushaku.balanceOf(config.wallet.address);
-    const balance22 = await yushaku.balanceOf(config.wallet2);
+    const balance11 = await uniswap.balanceOf(wallet.address);
+    const balance22 = await uniswap.balanceOf(wallet2);
 
     expect(balance11).toBe(balance1 - amount);
     expect(balance22).toBe(balance2 + amount);

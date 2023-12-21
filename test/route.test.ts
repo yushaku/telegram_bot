@@ -1,11 +1,11 @@
 import { UniRoute } from "@/uniswap";
 import { SWAP_ROUTER_ADDRESS } from "@/utils/constants";
 import { getProvider } from "@/utils/networks";
-import { NODE_ENV, USDC, chainId } from "@/utils/token";
+import { NODE_ENV, chainId } from "@/utils/token";
 import { isTransactionReceipt } from "@/utils/types";
 import { toReadableAmount } from "@/utils/utils";
 import { WETH9 } from "@uniswap/sdk-core";
-import { SwapRoute } from "@uniswap/smart-order-router";
+import { SwapRoute, USDT_MAINNET } from "@uniswap/smart-order-router";
 import { FeeAmount } from "@uniswap/v3-sdk";
 import { beforeAll, describe, expect, test } from "bun:test";
 import { writeData } from "./helper";
@@ -19,7 +19,7 @@ const account = {
 
 const tokens = {
   in: WETH9[chainId],
-  out: USDC,
+  out: USDT_MAINNET,
   poolFee: FeeAmount.MEDIUM,
 };
 
@@ -33,7 +33,7 @@ describe("Uni swap from token A to B", () => {
 
   beforeAll(async () => {
     const weth = WETH9[chainId];
-    const eth = new WrapToken(weth.address, weth.name, weth.decimals, provider);
+    const eth = new WrapToken(weth.address);
     await eth.wrap(amount * 2, account.privateKey);
   });
 

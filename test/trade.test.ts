@@ -32,7 +32,7 @@ describe("Uni swap from token A to B", () => {
 
   beforeAll(async () => {
     const weth = WETH9[chainId];
-    const eth = new WrapToken(weth.address, weth.name, weth.decimals, provider);
+    const eth = new WrapToken(weth.address);
     await eth.wrap(amount * 2, account.privateKey);
   });
 

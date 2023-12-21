@@ -23,8 +23,6 @@ export async function checkTokenApproval({
     const signer = new Wallet(account.privateKey, provider);
     const contract = new Contract(token.address, ERC20_ABI, signer);
 
-    console.log(contract.address);
-
     const allowedAmount = await contract.allowance(
       account.address,
       contractAddress,

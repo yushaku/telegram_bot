@@ -1,69 +1,50 @@
 import { WETH9 } from "@uniswap/sdk-core";
-import { USDC_GOERLI } from "@uniswap/smart-order-router";
-import { FeeAmount } from "@uniswap/v3-sdk";
 import { describe, expect, test } from "bun:test";
 import { WrapToken } from "lib/WrapToken";
-import { getProvider } from "utils/networks";
 import { chainId } from "utils/token";
-
-export const config = {
-  wallet: {
-    address: "0x4aBfCf64bB323CC8B65e2E69F2221B14943C6EE1",
-    privateKey:
-      "0x13d8c2dc8286cf55199a5ea81371813b1c09ae0426f4fb922611b5ab264d44f2",
-  },
-  wallet2: "0xDCF14807Ca8a640aDf369655f9aD1443077bFBf2",
-  tokens: {
-    in: WETH9[chainId],
-    amountIn: 1,
-    out: USDC_GOERLI,
-    poolFee: FeeAmount.MEDIUM,
-  },
-};
+import { wallet, wallet2 } from "./erc20.test";
 
 const weth = WETH9[chainId];
 const amount = 10;
-
-const provider = getProvider();
-const eth = new WrapToken(weth.address, weth.name, weth.decimals, provider);
+const eth = new WrapToken(weth.address);
 
 describe("test function of erc20", () => {
   test("get amount", async () => {
-    const res = await eth.getInfo(config.wallet.address);
+    const res = await eth.getInfo(wallet.address);
     expect(res.symbol).toBe(weth.symbol);
     expect(res.balance).not.toBeNil();
   });
 
   test("deposit", async () => {
-    const before = await eth.balanceOf(config.wallet.address);
-    await eth.wrap(amount * 2, config.wallet.privateKey);
-    const after = await eth.balanceOf(config.wallet.address);
+    const before = await eth.balanceOf(wallet.address);
+    await eth.wrap(amount * 2, wallet.privateKey);
+    const after = await eth.balanceOf(wallet.address);
 
     console.log({ before, after });
     expect(after).toBe(before + amount * 2);
   });
 
   test("withdraw", async () => {
-    const before = await eth.balanceOf(config.wallet.address);
-    await eth.unwrap(amount, config.wallet.privateKey);
-    const after = await eth.balanceOf(config.wallet.address);
+    const before = await eth.balanceOf(wallet.address);
+    await eth.unwrap(amount, wallet.privateKey);
+    const after = await eth.balanceOf(wallet.address);
 
     console.log({ before, after, sub: before - amount });
     expect(after).toBe(before - amount);
   });
 
   test("Transfer", async () => {
-    const sender1 = await eth.balanceOf(config.wallet.address);
-    const reciever1 = await eth.balanceOf(config.wallet2);
+    const sender1 = await eth.balanceOf(wallet.address);
+    const reciever1 = await eth.balanceOf(wallet2);
 
     await eth.transfer({
-      to: config.wallet2,
+      to: wallet2,
       amount,
-      privateKey: config.wallet.privateKey,
+      privateKey: wallet.privateKey,
     });
 
-    const sender2 = await eth.balanceOf(config.wallet.address);
-    const reciever2 = await eth.balanceOf(config.wallet2);
+    const sender2 = await eth.balanceOf(wallet.address);
+    const reciever2 = await eth.balanceOf(wallet2);
 
     console.log({
       sender1,

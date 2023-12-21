@@ -1,39 +1,29 @@
-import { JsonRpcProvider } from "@ethersproject/providers";
 import ERC20 from "abis/erc20.json";
 import { BigNumber, Contract, Wallet } from "ethers";
 import { formatUnits } from "ethers/lib/utils";
 import { TransactionState } from "uniswap/types";
 import { Account } from "utils/types";
-import { fromReadableAmount, toReadableAmount } from "utils/utils";
+import { BaseContract } from "./BaseContract";
 
-export class Erc20Token {
-  private provider: JsonRpcProvider;
-  private contract: Contract;
+export class Erc20Token extends BaseContract {
   public address: string;
   public decimals: number;
 
-  constructor(address: string, provider: JsonRpcProvider, decimals = 18) {
+  constructor(address: string, decimals = 0) {
+    super(address, ERC20);
     this.address = address;
-    this.provider = provider;
-    this.contract = new Contract(address, ERC20, provider);
     this.decimals = decimals;
-    this.checkDecimals();
   }
 
   async getInfo(address: string) {
     const [balance, decimals, name, symbol] = await Promise.all([
-      this.contract.balanceOf(address),
-      this.contract.decimals(),
-      this.contract.name(),
-      this.contract.symbol(),
+      this.balanceOf(address),
+      this.getDecimals(),
+      this.name(),
+      this.symbol(),
     ]);
 
-    return {
-      balance: Number(toReadableAmount(balance, decimals)),
-      decimals,
-      name,
-      symbol,
-    };
+    return { balance, decimals, name, symbol };
   }
 
   async name() {
@@ -44,13 +34,12 @@ export class Erc20Token {
     return this.contract.symbol();
   }
 
-  async getDecimal() {
-    return this.contract.decimals();
-  }
-
-  async checkDecimals() {
-    const decimals = await this.getDecimal();
-    this.decimals = decimals;
+  async getDecimals() {
+    if (this.decimals === 0) {
+      const decimals = await this.contract.decimals();
+      this.decimals = decimals;
+    }
+    return this.decimals;
   }
 
   async approve({
@@ -66,10 +55,7 @@ export class Erc20Token {
     const contract = new Contract(this.address, ERC20, signer);
 
     try {
-      const tx = await contract.approve(
-        to,
-        fromReadableAmount(amount, this.decimals),
-      );
+      const tx = await contract.approve(to, this.toWei(amount));
       const result = await tx.wait();
       console.log(`Allowed ${amount} to ${to} `);
       return result;
@@ -81,7 +67,7 @@ export class Erc20Token {
   async allowance(account: string, spender: string) {
     return this.contract
       .allowance(account, spender)
-      .then((data: BigNumber) => toReadableAmount(data, this.decimals))
+      .then((data: BigNumber) => this.toNumber(data))
       .then((data: string) => Number(data))
       .catch((err: any) => console.log(err));
   }
@@ -89,7 +75,7 @@ export class Erc20Token {
   async balanceOf(address: string): Promise<number> {
     return this.contract
       .balanceOf(address)
-      .then((data: BigNumber) => toReadableAmount(data, this.decimals))
+      .then((data: BigNumber) => this.toNumber(data))
       .then((data: string) => Number(data))
       .catch((err: any) => console.log(err));
   }
@@ -102,7 +88,7 @@ export class Erc20Token {
     switch (fn) {
       case "transfer":
         return await this.contract.estimateGas
-          .transfer(to, fromReadableAmount(amount, 18))
+          .transfer(to, this.toWei(amount))
           .then((data: BigNumber) => formatUnits(data, "gwei"));
     }
   }
@@ -120,10 +106,7 @@ export class Erc20Token {
     const contract = new Contract(this.address, ERC20, signer);
 
     try {
-      const tx = await contract.transfer(
-        to,
-        fromReadableAmount(amount, this.decimals),
-      );
+      const tx = await contract.transfer(to, this.toWei(amount));
       const result = await tx.wait();
       return result;
     } catch (error) {
@@ -142,10 +125,7 @@ export class Erc20Token {
   }) {
     try {
       const allowedAmount = await this.allowance(account.address, spender);
-
-      console.log(`Allowed amount: ${allowedAmount}`);
       if (allowedAmount >= amount) return "Ok";
-
       return this.approve({
         amount,
         privateKey: account.privateKey,
