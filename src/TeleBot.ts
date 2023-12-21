@@ -3,7 +3,7 @@ import { isAddress } from "ethers/lib/utils";
 import TelegramBot from "node-telegram-bot-api";
 import { TOKENS_BUTTONS, WALLET_BUTTONS } from "utils/replyButton";
 import {
-  WATCH_WALLET_ADD,
+  WHALE_WALLET_ADD,
   BUY_TOKEN,
   CLOSE,
   CREATE_WALLET,
@@ -39,6 +39,10 @@ export class TeleBot {
         description: "follows the shark and whale",
       },
       {
+        command: "/wallets",
+        description: "Manager your wallets",
+      },
+      {
         command: "/tokens",
         description: "List some tokens",
       },
@@ -54,26 +58,7 @@ export class TeleBot {
   listen() {
     this.bot.onText(/\/test/, (msg) => {
       this.bot.sendMessage(msg.chat.id, "Testing");
-      this.tracker.getDetailTX(
-        "0xa27467a5e3b2e97bb905c5194836f98d952f6391517da990f4f3a771ad8fa43a",
-      );
-    });
-
-    // MARK: /watch whale's wallet
-    this.bot.onText(/\/watch/, async (msg) => {
-      const id = msg.from?.id;
-      if (!id) return;
-
-      const sent = await this.bot.sendMessage(msg.chat.id, "Processing...");
-      const { text, buttons } = await this.teleService.watchList(id);
-
-      this.bot.editMessageText(text, {
-        chat_id: sent.chat.id,
-        message_id: sent.message_id,
-        parse_mode: "Markdown",
-        disable_web_page_preview: true,
-        reply_markup: buttons,
-      });
+      this.tracker.accountHisory("0x1b1e1d7c62dc1c5655562286f8f4be57c6a309fb");
     });
 
     // this.bot.onText(/\/test/, async (msg) => {
@@ -98,32 +83,46 @@ export class TeleBot {
     //   );
     // });
 
-    this.bot.onText(/\/trade/, async (msg) => {
-      if (!msg.from) return;
-      const sent = await this.bot.sendMessage(
-        msg.chat.id,
-        "Swap from WETH to UNI",
-      );
-      this.bot.editMessageText("hello", {
-        message_id: sent.message_id,
+    // MARK: /watch whale's wallet
+    this.bot.onText(/\/watch/, async (msg) => {
+      const id = msg.from?.id;
+      if (!id) return;
+
+      const sent = await this.bot.sendMessage(msg.chat.id, "Processing...");
+      const { text, buttons } = await this.teleService.whaleList(id);
+      this.bot.editMessageText(text, {
         chat_id: sent.chat.id,
-        parse_mode: "Markdown",
+        message_id: sent.message_id,
+        reply_markup: buttons,
       });
     });
 
-    this.bot.onText(/\/route/, async (msg) => {
-      if (!msg.from) return;
-      const sent = await this.bot.sendMessage(
-        msg.chat.id,
-        "create route from WETH to UNI",
-      );
-      const text = await this.teleService.hello(msg.from.id);
-      this.bot.editMessageText(text ?? "hello", {
-        message_id: sent.message_id,
-        chat_id: sent.chat.id,
-        parse_mode: "Markdown",
-      });
-    });
+    // this.bot.onText(/\/trade/, async (msg) => {
+    //   if (!msg.from) return;
+    //   const sent = await this.bot.sendMessage(
+    //     msg.chat.id,
+    //     "Swap from WETH to UNI",
+    //   );
+    //   this.bot.editMessageText("hello", {
+    //     message_id: sent.message_id,
+    //     chat_id: sent.chat.id,
+    //     parse_mode: "Markdown",
+    //   });
+    // });
+    //
+    // this.bot.onText(/\/route/, async (msg) => {
+    //   if (!msg.from) return;
+    //   const sent = await this.bot.sendMessage(
+    //     msg.chat.id,
+    //     "create route from WETH to UNI",
+    //   );
+    //   const text = await this.teleService.hello(msg.from.id);
+    //   this.bot.editMessageText(text ?? "hello", {
+    //     message_id: sent.message_id,
+    //     chat_id: sent.chat.id,
+    //     parse_mode: "Markdown",
+    //   });
+    // });
 
     // MARK: /tokens command
     this.bot.onText(/\/tokens/, async (msg) => {
@@ -139,13 +138,39 @@ export class TeleBot {
       );
     });
 
-    // MARK: /wallets command
+    // MARK: /start command
     this.bot.onText(/\/start/, async (msg) => {
-      const id = msg.from?.id;
-      if (!id) return;
+      const user = msg.from;
+      if (!user) return;
 
       const sent = await this.bot.sendMessage(msg.chat.id, "Processing...");
-      const text = await this.teleService.commandWallet(id);
+      const text = await this.teleService.commandStart(user);
+
+      this.bot.editMessageText(text, {
+        chat_id: sent.chat.id,
+        message_id: sent.message_id,
+        parse_mode: "Markdown",
+        disable_web_page_preview: true,
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: "My Wallets", callback_data: IMPORT_WALLET },
+              { text: "Tracking Wallets", callback_data: CREATE_WALLET },
+            ],
+            [{ text: "Trade", callback_data: LIST_WALLET }],
+          ],
+        },
+      });
+    });
+
+    // MARK: /wallets command
+    this.bot.onText(/\/wallets/, async (msg) => {
+      const user = msg.from;
+      if (!user) return;
+
+      const sent = await this.bot.sendMessage(msg.chat.id, "Processing...");
+      const text = await this.teleService.commandWallet(user.id);
+
       this.bot.editMessageText(text, {
         chat_id: sent.chat.id,
         message_id: sent.message_id,
@@ -207,8 +232,6 @@ export class TeleBot {
       if (
         action.match(/(remove_wallet|detail_wallet|change_input_token) (\S+)/g)
       ) {
-        console.log(action);
-
         const [type, address] = action.split(" ");
         switch (type) {
           // MARK: Pick wallet to interact
@@ -233,9 +256,7 @@ export class TeleBot {
             const sent = await this.bot.sendMessage(
               chatId,
               "⚠️  Are you sure?  type 'yes' to confirm ⚠️",
-              {
-                reply_markup: { force_reply: true },
-              },
+              { reply_markup: { force_reply: true } },
             );
 
             return this.bot.onReplyToMessage(
@@ -263,12 +284,16 @@ export class TeleBot {
         }
       }
 
-      //HACK: 🐳 CRUD TRACK WALLET
-      if (action.match(/(watch_wallet_remove|watch_wallet) (\S+)/g)) {
+      //HACK: 🐳 CRUD WHALE WALLET
+      if (
+        action.match(
+          /(whale_wallet_remove|whale_wallet_detail|holding_token|analysis_wallet) (\S+)/g,
+        )
+      ) {
         const [type, address] = action.split(" ");
         switch (type) {
-          // MARK: remove wallet in watching list
-          case "watch_wallet_remove": {
+          // MARK: remove whale's wallet
+          case "whale_wallet_remove": {
             const sent = await this.bot.sendMessage(
               chatId,
               "⚠️  Are you sure?  type 'yes' to confirm ⚠️",
@@ -282,7 +307,7 @@ export class TeleBot {
               sent.message_id,
               async (msg) => {
                 if (!msg.from?.id || msg?.text !== "yes") return;
-                const text = await this.teleService.removeWatchWallet({
+                const text = await this.teleService.removeWhaleWallet({
                   userId: msg.from.id,
                   address,
                   channelId: chatId,
@@ -293,13 +318,37 @@ export class TeleBot {
           }
 
           // MARK: get details of tracked wallet
-          case "watch_wallet": {
+          case "whale_wallet_detail": {
             const { text, buttons } =
-              await this.teleService.detailWallet(address);
+              await this.teleService.whaleWalletDetail(address);
 
             return this.bot.sendMessage(chatId, text, {
               parse_mode: "Markdown",
               disable_web_page_preview: false,
+              reply_markup: buttons,
+            });
+          }
+
+          // MARK: whale holding's token
+          case "holding_token": {
+            const { text, buttons } =
+              await this.teleService.holdingtoken(address);
+
+            return this.bot.sendMessage(chatId, text, {
+              parse_mode: "Markdown",
+              disable_web_page_preview: true,
+              reply_markup: buttons,
+            });
+          }
+
+          // MARK: analysis whale trading
+          case "analysis_wallet": {
+            const { text, buttons } =
+              await this.teleService.holdingtoken(address);
+
+            return this.bot.sendMessage(chatId, text, {
+              parse_mode: "Markdown",
+              disable_web_page_preview: true,
               reply_markup: buttons,
             });
           }
@@ -541,6 +590,8 @@ export class TeleBot {
             replyMsg.message_id,
             async (msg) => {
               if (!msg.from?.id || !msg.text) return;
+              this.bot.deleteMessage(chatId, replyMsg.message_id);
+              this.bot.deleteMessage(chatId, msg.message_id);
               const text = await this.teleService.importWallet(
                 msg.from.id,
                 msg.text,
@@ -560,14 +611,12 @@ export class TeleBot {
           );
         }
 
-        // MARK: Add wallet to watching list
-        case WATCH_WALLET_ADD: {
+        // MARK: Add whale's wallet
+        case WHALE_WALLET_ADD: {
           const sent1 = await this.bot.sendMessage(
             chatId,
             "Enter wallet address",
-            {
-              reply_markup: { force_reply: true },
-            },
+            { reply_markup: { force_reply: true } },
           );
 
           return this.bot.onReplyToMessage(
@@ -585,9 +634,7 @@ export class TeleBot {
               const sent2 = await this.bot.sendMessage(
                 sent1.chat.id,
                 "Enter wallet name",
-                {
-                  reply_markup: { force_reply: true },
-                },
+                { reply_markup: { force_reply: true } },
               );
 
               this.bot.onReplyToMessage(
@@ -596,7 +643,7 @@ export class TeleBot {
                 async (msg) => {
                   if (!msg.text || !msg.from?.id) return;
 
-                  const text = await this.teleService.addWatchWallet({
+                  const text = await this.teleService.addWhaleWallet({
                     channelId: chatId,
                     userId: msg.from?.id,
                     name: msg.text,
@@ -604,7 +651,7 @@ export class TeleBot {
                   });
                   const sent2 = await this.bot.sendMessage(chatId, text);
                   const { text: text2, buttons } =
-                    await this.teleService.watchList(userId);
+                    await this.teleService.whaleList(userId);
 
                   this.bot.editMessageText(text2, {
                     chat_id: sent2.chat.id,

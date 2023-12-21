@@ -3,7 +3,7 @@ import { formatUnits } from "ethers/lib/utils";
 import { shortenAddress, toReadableAmount } from "./utils";
 import { ScanWallet } from "@/market/types";
 import { urlScan } from "./networks";
-import { ParseLog } from "@/tracker";
+import { ParseLog } from "@/tracker/types";
 
 export const START_MESSAGE = `
 What would you like to do today?
@@ -232,10 +232,13 @@ Gas Cost: \`${formatUnits(gas ?? 0, "gwei")}\` gwei
 View in [etherscan](${urlScan}/tx/${hash})
 `;
 
-export const scanWalletmsg = (data: ScanWallet) => `
+export const scanWalletmsg = (data: {
+  address: string;
+  balance: string | number;
+}) => `
 Scan wallet: \`${data.address}\`
-Balance: \`${data.ETH.balance / 10 ** 18}\` ETH
-checkout: [Debank](https://debank.com/profile/${data.address}?chain=eth)
+Balance: \`${data.balance}\` ETH
+Get account detail: [Debank](https://debank.com/profile/${data.address}?chain=eth) - OR - [Etherscan](${urlScan}/address/${data.address})
 `;
 
 export const whaleActionMsg = ({ from, to, value, hash }: any) => `

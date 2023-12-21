@@ -7,11 +7,9 @@ import TelegramBot from "node-telegram-bot-api";
 import Web3, { FMT_BYTES, FMT_NUMBER, Log } from "web3";
 import { Erc20Token } from "@/lib/Erc20token";
 import { DexMap, hashOfTransferTx } from "@/utils/constants";
-import { ParseLog } from "./types";
+import { ParseLog, Transaction } from "./types";
 import { CoinMarket } from "@/market";
 import { stableCoinList } from "@/utils/stableCoin";
-import { MoralistokenPrice } from "@/market/types";
-import { WhaleService } from "@/database/services/Whale";
 
 const wsProvider = new Web3.providers.WebsocketProvider(ws);
 const provider = getProvider();
@@ -104,29 +102,41 @@ export class Tracker {
 
   async accountHisory(address: string) {
     const data = await this.market.getWalletHistory(address);
+    if (!data) return;
 
-    for (let i = 0; i < data?.result.length; i++) {
+    const list: Array<Transaction> = [];
+
+    for (let i = 0; i < data.result.length; i++) {
       const tx = data.result[i];
       const userAdd = tx.from;
       const blockNumber = tx.blockNumber;
+      const timestamp = tx.timeStamp;
 
       if (!DexMap.has(tx.to.toLocaleLowerCase())) continue;
       const receive = await this.getDetailTX(tx.hash);
-      // receive.forEach(async (log) => {
-      //   if (!log) return;
-      //   const price = await this.market.tokenPrice({
-      //     tokenAddr: log.address,
-      //     blockNumber,
-      //   });
-      //
-      //   console.log(price);
-      //
-      //   if (log.from === userAdd) {
-      //     console.log(log);
-      //   } else if (log.to === userAdd) {
-      //     console.log(log);
-      //   }
-      // });
+      for (let i = 0; i < receive.length; i++) {
+        const log = receive[i];
+        if (!log || stableCoinList.has(log.address)) return;
+
+        const res = await this.market.tokenPrice({
+          tokenAddr: log.address,
+          blockNumber,
+        });
+
+        const amount = Number(log.amount.toFixed(2));
+        const price = Number(res.usdPrice.toFixed(2));
+        const transaction = {
+          hash: tx.hash,
+          address: log.address,
+          symbol: log.symbol,
+          amount,
+          price,
+          total: amount * price,
+          time: new Date(`${timestamp}000`),
+          action: log.to === userAdd ? "BUY" : "SELL",
+        };
+        list.push(transaction);
+      }
     }
   }
 
@@ -152,28 +162,7 @@ export class Tracker {
       })
       .map((log) => this.convertLog(log));
 
-    // return Promise.all(promiseTransfers);
-    const receive = await Promise.all(promiseTransfers);
-
-    receive.forEach(async (log) => {
-      if (!log) return;
-      let price: Partial<MoralistokenPrice> = {
-        usdPriceFormatted: "1",
-      };
-
-      if (!stableCoinList.has(log.address)) {
-        price = await this.market.tokenPrice({
-          tokenAddr: log.address,
-          blockNumber: Number(detail.blockNumber),
-        });
-      }
-
-      if (log.from === userAdd) {
-        console.log(log);
-      } else if (log.to === userAdd) {
-        console.log(log);
-      }
-    });
+    return Promise.all(promiseTransfers);
   }
 
   async getTx(hash: string) {

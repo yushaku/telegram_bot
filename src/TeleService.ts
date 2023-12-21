@@ -21,7 +21,7 @@ import {
   REDIS_WHALE_WALLET,
   SELL_LIMIT,
   SELL_TOKEN,
-  WATCH_WALLET_ADD,
+  WHALE_WALLET_ADD,
 } from "@/utils/replyTopic";
 import { UNI, WETH, chainId, isWETH } from "@/utils/token";
 import { isTransaction } from "@/utils/types";
@@ -36,12 +36,14 @@ import {
 import { JsonRpcProvider } from "@ethersproject/providers";
 import { Token, WETH9 } from "@uniswap/sdk-core";
 import { RedisService, isEstimateTrade, isOrder } from "lib/RedisService";
-import TelegramBot, { User } from "node-telegram-bot-api";
+import TelegramBot, { InlineKeyboardButton, User } from "node-telegram-bot-api";
 import { v4 as uuidv4 } from "uuid";
+import { userService } from "./database/services/User";
+import { WhaleService } from "./database/services/Whale";
 import { Erc20Token } from "./lib/Erc20token";
 import { CoinMarket } from "./market";
 import { CHANGE_SWAP_INPUT_TOKEN, CLOSE_BUTTON } from "./utils/replyButton";
-import { WhaleService } from "./database/services/Whale";
+import { Tracker } from "./tracker";
 
 export class TeleService {
   private provider: JsonRpcProvider;
@@ -49,13 +51,14 @@ export class TeleService {
   private market = new CoinMarket();
   private uniswap = new UniswapService();
   private whaleService = new WhaleService();
+  private userService = new userService();
 
   constructor() {
     this.provider = getProvider();
   }
 
   async hi(userId: number) {
-    const account = await this.getAccount(userId);
+    const account = await this.userService.getAccount(userId);
     if (!account) return;
 
     const tokenA = WETH;
@@ -83,7 +86,7 @@ export class TeleService {
   }
 
   async hello(userId: number) {
-    const account = await this.getAccount(userId);
+    const account = await this.userService.getAccount(userId);
     if (!account) return;
 
     const tokenA = WETH;
@@ -114,30 +117,14 @@ export class TeleService {
   }
 
   async commandStart(user: User) {
-    const { id, first_name, last_name } = user;
-    const userInfo = await this.cache.getUser(id);
-    if (userInfo) return userInfo;
-
-    const defalt = {
-      name: `${first_name} ${last_name}`,
-      tokenIn: {
-        address: WETH9[chainId].address,
-        decimals: WETH9[chainId].decimals,
-      },
-      accounts: [],
-      watchList: [],
-      mainAccount: null,
-      slippage: 10,
-      maxGas: 10,
-    };
-
-    this.cache.setUser(id, defalt);
-    return defalt;
+    await this.userService.findOrCreate(user);
+    return `Hello ${user.first_name} ${user.last_name} \nHow can I help you today?`;
   }
 
   async setConfig(type: "slippage" | "maxGas", userId: number, num: number) {
-    const user = await this.cache.getUser(userId);
-    await this.cache.setUser(userId, {
+    const user = await this.userService.findById(userId);
+    await this.userService.update({
+      userId,
       ...user,
       [type]: num,
     });
@@ -148,7 +135,7 @@ export class TeleService {
   }
 
   async commandWallet(userId: number) {
-    const user = await this.cache.getUser(userId);
+    const user = await this.userService.findById(userId);
     const [accounts, block] = await Promise.all([
       getBalance(user.accounts),
       getBlock(),
@@ -161,38 +148,63 @@ export class TeleService {
     });
   }
 
-  async watchList(userId: number) {
-    const user = await this.cache.getUser(userId);
+  async whaleList(userId: number) {
+    const user = await this.userService.findById(userId);
     const watchList = user.watchList ?? [];
 
-    const inline_keyboard = watchList.map((acc) => {
+    const inline_keyboard: InlineKeyboardButton[][] = watchList.map((acc) => {
       return [
-        { text: acc.name, callback_data: `watch_wallet ${acc.address}` },
         {
-          text: shortenAddress(acc.address, 8),
-          callback_data: `watch_wallet ${acc.address}`,
+          text: acc.name,
+          callback_data: `whale_wallet_detail ${acc.address}`,
+        },
+        {
+          text: "✏️  Edit name",
+          callback_data: `whale_wallet_edit ${acc.address}`,
         },
         {
           text: "❌ Remove",
-          callback_data: `watch_wallet_remove ${acc.address}`,
+          callback_data: `whale_wallet_remove ${acc.address}`,
         },
       ];
     });
 
     inline_keyboard.push([
-      { text: "➕ Add Wallet", callback_data: WATCH_WALLET_ADD },
+      { text: "➕ Add Wallet", callback_data: WHALE_WALLET_ADD },
     ]);
 
     return {
-      text: "📺 Your watch list:",
+      text: "📺 Your whale wallet list:",
       buttons: { inline_keyboard },
     };
   }
 
-  async detailWallet(address: string) {
-    const data = await this.market.scanWallet(address);
+  async whaleWalletDetail(address: string) {
+    const balance = await this.provider.getBalance(address);
+    return {
+      text: scanWalletmsg({ address, balance: Number(balance) / 10 ** 18 }),
+      buttons: {
+        inline_keyboard: [
+          [
+            {
+              text: "Holding Token",
+              callback_data: `holding_token ${address}`,
+            },
+            {
+              text: "Trading Analysis",
+              callback_data: `analysis_wallet ${address}`,
+            },
+          ],
+          [{ text: "✖️ Close", callback_data: CLOSE }],
+        ],
+      },
+    };
+  }
 
+  async holdingtoken(address: string) {
+    const data = await this.market.scanWallet(address);
     const list: { text: string; callback_data: string }[][] = [];
+
     data?.tokens?.forEach((token) => {
       const amount =
         token.balance / 10 ** Number(token.tokenInfo.decimals ?? 18);
@@ -204,6 +216,7 @@ export class TeleService {
       const total = price * Number(amount);
       const symbol = token.tokenInfo.symbol;
 
+      if (total <= 0) return;
       list.push([
         { text: symbol, callback_data: token.tokenInfo.address },
         { text: `💲 ${price.toFixed(4)}`, callback_data: NO_CALLBACK },
@@ -213,7 +226,7 @@ export class TeleService {
     });
 
     return {
-      text: scanWalletmsg(data),
+      text: scanWalletmsg({ address: data.address, balance: data.ETH.balance }),
       buttons: {
         inline_keyboard: [
           [
@@ -229,7 +242,11 @@ export class TeleService {
     };
   }
 
-  async addWatchWallet({
+  async analysisWallet(address: string) {
+    this;
+  }
+
+  async addWhaleWallet({
     userId,
     address,
     name,
@@ -241,7 +258,7 @@ export class TeleService {
     channelId: number;
   }) {
     const [user, whaleWallet] = await Promise.all([
-      this.cache.getUser(userId),
+      this.userService.findById(userId),
       this.cache.getWhaleWallets(),
     ]);
 
@@ -263,8 +280,9 @@ export class TeleService {
     );
 
     await Promise.all([
-      this.cache.setUser(userId, {
+      this.userService.update({
         ...user,
+        userId,
         watchList: [...watchList, { address, name }],
       }),
       this.cache.setWhaleWallets(whaleWallet),
@@ -273,7 +291,7 @@ export class TeleService {
     return "Add wallet to watch list successfully";
   }
 
-  async removeWatchWallet({
+  async removeWhaleWallet({
     userId,
     address,
     channelId,
@@ -283,7 +301,7 @@ export class TeleService {
     channelId: number;
   }) {
     const [user, whaleWallet] = await Promise.all([
-      this.cache.getUser(userId),
+      this.userService.findById(userId),
       this.cache.getWhaleWallets(),
     ]);
     const watchList = user.watchList ?? [];
@@ -299,7 +317,8 @@ export class TeleService {
     );
 
     await Promise.all([
-      this.cache.setUser(userId, {
+      this.userService.update({
+        userId,
         ...user,
         watchList: watchList.filter((acc) => acc.address !== address),
       }),
@@ -312,11 +331,12 @@ export class TeleService {
   async importWallet(userId: number, key: string) {
     const acc = parseKey(key);
 
-    const user = await this.cache.getUser(userId);
+    const user = await this.userService.findById(userId);
     const isExist = user.accounts.some((item) => item.address === acc.address);
     if (isExist) return "Wallet already exist";
 
-    await this.cache.setUser(userId, {
+    this.userService.update({
+      userId,
       ...user,
       accounts: [
         ...user?.accounts,
@@ -332,8 +352,9 @@ export class TeleService {
 
   async createWallet(userId: number) {
     const acc = createAccount();
-    const user = await this.cache.getUser(userId);
-    this.cache.setUser(userId, {
+    const user = await this.userService.findById(userId);
+    this.userService.update({
+      userId,
       ...user,
       accounts: [
         ...user?.accounts,
@@ -348,7 +369,7 @@ export class TeleService {
   }
 
   async listWallet(userId: number): Promise<TelegramBot.SendMessageOptions> {
-    const user = await this.cache.getUser(userId);
+    const user = await this.userService.findById(userId);
     const accountList = user.accounts?.map((acc) => [
       {
         text: shortenAddress(acc.address, 8),
@@ -372,7 +393,7 @@ export class TeleService {
   }
 
   async changeSwapInputToken(userId: number, address: string) {
-    const user = await this.cache.getUser(userId);
+    const user = await this.userService.findById(userId);
     const token = new Erc20Token(address, this.provider);
     const name = token.name();
     if (!name)
@@ -385,7 +406,8 @@ export class TeleService {
       address,
       decimals: token.decimals,
     };
-    this.cache.setUser(userId, user);
+
+    this.userService.update({ userId, ...user });
 
     return {
       text: "✅ Updated input token address successfully",
@@ -394,19 +416,19 @@ export class TeleService {
   }
 
   async deleteWallet(userId: number, address: string) {
-    const user = await this.cache.getUser(userId);
+    const user = await this.userService.findById(userId);
     const accounts = user.accounts.filter((acc) => acc.address !== address);
 
     if (user.mainAccount?.address === address) {
       user.mainAccount = accounts.at(0) ?? null;
     }
 
-    await this.cache.setUser(userId, { ...user, accounts });
+    await this.userService.update({ ...user, userId, accounts });
     return "Delete successfully";
   }
 
   async checkToken({ address, userId }: { address: string; userId: number }) {
-    const user = await this.cache.getUser(userId);
+    const user = await this.userService.findById(userId);
     const acc = user.mainAccount ?? user.accounts.at(0);
     if (!acc)
       return {
@@ -483,7 +505,7 @@ export class TeleService {
     const buttons = top_holders.map(({ address, balance }) => [
       {
         text: shortenAddress(address),
-        callback_data: `watch_wallet ${address}`,
+        callback_data: `whale_wallet_detail ${address}`,
       },
       {
         text: `${balance / 10 ** token.decimals} ${symbol}`,
@@ -517,7 +539,7 @@ export class TeleService {
     tokenAddress: string;
     type: "BUY" | "SELL";
   }) {
-    const acc = await this.getAccount(userId);
+    const acc = await this.userService.getAccount(userId);
     if (!acc) return { text: "Account not found", buttons: {} };
 
     if (isWETH(tokenAddress)) {
@@ -568,7 +590,7 @@ export class TeleService {
     const tokenA = WETH9[chainId];
     const tokenB = new Token(chainId, tokenAddress, 18);
 
-    const account = await this.getAccount(userId);
+    const account = await this.userService.getAccount(userId);
     if (!account) return { text: "User haven't got wallet" };
 
     const [pair, route] = await Promise.all([
@@ -632,7 +654,7 @@ export class TeleService {
     tokenAddress: string;
     type: "BUY" | "SELL";
   }) {
-    const user = await this.cache.getUser(userId);
+    const user = await this.userService.findById(userId);
     const tokenIn = user.tokenIn;
     const tokenOut = new Erc20Token(tokenAddress, this.provider);
     const decimals = await tokenOut.getDecimal();
@@ -650,7 +672,7 @@ export class TeleService {
       tokenB = new Token(chainId, tokenIn.address, tokenIn.decimals);
     }
 
-    const account = await this.getAccount(userId);
+    const account = await this.userService.getAccount(userId);
     if (!account) return { text: "User haven't got wallet" };
 
     try {
@@ -721,7 +743,7 @@ export class TeleService {
   async confirmSwap({ id, userId }: { id: string; userId: number }) {
     const [data, account] = await Promise.all([
       this.cache.getOrder(id),
-      this.getAccount(userId),
+      this.userService.getAccount(userId),
     ]);
 
     if (!account) return { text: "No wallet found" };
@@ -820,14 +842,15 @@ export class TeleService {
     const [balance, block, user] = await Promise.all([
       this.provider.getBalance(wallet),
       getBlock(),
-      this.cache.getUser(userId),
+      this.userService.findById(userId),
     ]);
 
     const acc = user.accounts.find((a) => a.address === wallet);
     if (!acc) return { text: "Not found account" };
 
-    this.cache.setUser(userId, {
+    this.userService.update({
       ...user,
+      userId,
       mainAccount: acc,
     });
 
@@ -859,27 +882,15 @@ export class TeleService {
     };
   }
 
-  async getAccount(userId: number) {
-    const user = await this.cache.getUser(userId);
-    const acc = user.mainAccount;
-    const firstAcc = user.accounts?.at(0);
-
-    if (!firstAcc) return null;
-    if (acc) return acc;
-
-    this.cache.setUser(userId, {
-      ...user,
-      mainAccount: firstAcc,
-    });
-
-    return firstAcc;
-  }
-
   async getDefaultToken(userId: number) {
-    const user = await this.cache.getUser(userId);
+    const user = await this.userService.findById(userId);
     const address = user.tokenIn.address;
     const account = user.mainAccount;
     const token = new Erc20Token(address, this.provider);
     return token.getInfo(account?.address ?? "0x0");
+  }
+
+  async getAccount(userId: number) {
+    return this.userService.getAccount(userId);
   }
 }

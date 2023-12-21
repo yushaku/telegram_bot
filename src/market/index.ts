@@ -64,14 +64,12 @@ export class CoinMarket {
   });
 
   async tokenInfo(address: string) {
-    const a = await this.coinmarket.get(`cryptocurrency/quotes/latest`, {
+    return this.coinmarket.get(`cryptocurrency/quotes/latest`, {
       params: {
         symbol: "UNI",
         convert: "USD",
       },
     });
-
-    console.log(a.data);
   }
 
   async scanWallet(address: string): Promise<ScanWallet> {
@@ -116,17 +114,21 @@ export class CoinMarket {
   // }
 
   async getWalletHistory(address: string) {
-    const res = await this.etherscan.get("?module=account", {
-      params: {
-        address,
-        action: "txlist",
-        startblock: 0,
-        endblock: 9999999999,
-        apikey: ETHERSCAN_ID,
-      },
-    });
+    try {
+      const res = await this.etherscan.get(`?address=${address}`, {
+        params: {
+          module: "account",
+          action: "txlist",
+          startblock: 0,
+          endblock: 9999999999,
+          apikey: ETHERSCAN_ID,
+        },
+      });
 
-    return res.data as EtherscanHistory;
+      return res.data as EtherscanHistory;
+    } catch (error) {
+      console.error(error);
+    }
   }
 
   async tokenPrice({
@@ -139,7 +141,7 @@ export class CoinMarket {
     const res = await this.moralis.get(`erc20/${tokenAddr}/price`, {
       params: {
         chain: moralisChain[chainId as keyof typeof moralisChain],
-        exchange: "uniswapv2",
+        exchange: "uniswapv3",
         to_block: blockNumber,
       },
     });

@@ -18,7 +18,7 @@ export const CHANGE_INPUT_TOKEN_CUSTOM = "change_input_token_custom";
 export const CLOSE = "close";
 export const MENU = "menu";
 
-export const WATCH_WALLET_ADD = "watch_wallet_add";
+export const WHALE_WALLET_ADD = "whale_wallet_add";
 
 export const NO_CALLBACK = "NO_CALLBACK";
 

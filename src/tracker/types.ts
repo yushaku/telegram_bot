@@ -35,3 +35,14 @@ export type Result = {
   methodId: string;
   functionName: string;
 };
+
+export type Transaction = {
+  hash: string;
+  address: string;
+  symbol: string;
+  amount: number;
+  price: number;
+  total: number;
+  time: Date;
+  action: string;
+};
