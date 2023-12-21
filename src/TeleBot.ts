@@ -32,7 +32,6 @@ export class TeleBot {
   }
 
   async init() {
-    this.tracker.track();
     this.bot.setMyCommands([
       {
         command: "/watch",
@@ -53,35 +52,13 @@ export class TeleBot {
     ]);
     this.listen();
     this.handleCallback();
+    this.tracker.trackWhaleWallet();
   }
 
   listen() {
     this.bot.onText(/\/test/, (msg) => {
       this.bot.sendMessage(msg.chat.id, "Testing");
-      this.tracker.accountHisory("0x1b1e1d7c62dc1c5655562286f8f4be57c6a309fb");
     });
-
-    // this.bot.onText(/\/test/, async (msg) => {
-    //   if (!msg.from) return;
-    //   const sent = await this.bot.sendMessage(msg.chat.id, "Processing...");
-    //   const data = await this.tracker.getTx(
-    //     "0x6a07a78b6fa4617fdc1ef482b134a1bda0c2e229d12b82c24ffdf2a11ec6ed01",
-    //   );
-    //   if (!data) return;
-    //   const { sendTx, receiveTx, hash } = data;
-    //   this.bot.editMessageText(
-    //     whaleActionMsg2({
-    //       hash,
-    //       sendTx,
-    //       receiveTx,
-    //     }),
-    //     {
-    //       message_id: sent.message_id,
-    //       chat_id: sent.chat.id,
-    //       parse_mode: "Markdown",
-    //     },
-    //   );
-    // });
 
     // MARK: /watch whale's wallet
     this.bot.onText(/\/watch/, async (msg) => {
@@ -96,33 +73,6 @@ export class TeleBot {
         reply_markup: buttons,
       });
     });
-
-    // this.bot.onText(/\/trade/, async (msg) => {
-    //   if (!msg.from) return;
-    //   const sent = await this.bot.sendMessage(
-    //     msg.chat.id,
-    //     "Swap from WETH to UNI",
-    //   );
-    //   this.bot.editMessageText("hello", {
-    //     message_id: sent.message_id,
-    //     chat_id: sent.chat.id,
-    //     parse_mode: "Markdown",
-    //   });
-    // });
-    //
-    // this.bot.onText(/\/route/, async (msg) => {
-    //   if (!msg.from) return;
-    //   const sent = await this.bot.sendMessage(
-    //     msg.chat.id,
-    //     "create route from WETH to UNI",
-    //   );
-    //   const text = await this.teleService.hello(msg.from.id);
-    //   this.bot.editMessageText(text ?? "hello", {
-    //     message_id: sent.message_id,
-    //     chat_id: sent.chat.id,
-    //     parse_mode: "Markdown",
-    //   });
-    // });
 
     // MARK: /tokens command
     this.bot.onText(/\/tokens/, async (msg) => {
@@ -343,13 +293,12 @@ export class TeleBot {
 
           // MARK: analysis whale trading
           case "analysis_wallet": {
-            const { text, buttons } =
-              await this.teleService.holdingtoken(address);
+            this.bot.sendMessage(chatId, "On a way to analysis...");
+            const { text } = await this.teleService.analysisWallet(address);
 
             return this.bot.sendMessage(chatId, text, {
               parse_mode: "Markdown",
               disable_web_page_preview: true,
-              reply_markup: buttons,
             });
           }
         }
@@ -440,7 +389,7 @@ export class TeleBot {
             });
           }
 
-          // TODO: Sell amount of token
+          // MARK: Sell amount of token
           case "sell_custom": {
             const { symbol } = await this.teleService.getDefaultToken(userId);
             const sent = await this.bot.sendMessage(

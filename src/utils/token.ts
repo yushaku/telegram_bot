@@ -21,7 +21,7 @@ function enumToMap<T extends string | number>(enumObj: Record<string, T>) {
   return map;
 }
 
-const chainList = enumToMap(ChainId);
+export const chainList = enumToMap(ChainId);
 export const chainId = chainList.get(NODE_ENV) ?? ChainId.MAINNET; 
 
 export const MATIC_POLYGON = new Token(ChainId.POLYGON, '0x0000000000000000000000000000000000001010', 18, 'MATIC')
@@ -39,7 +39,7 @@ export const MAIN_UNI  = new Token(ChainId.MAINNET, "0x1f9840a85d5aF5bf1D1762F92
 export const GOERLI_WETH = new Token(ChainId.GOERLI, "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6", 18);
 
 export const USDC = NODE_ENV === 'GOERLI' ? USDC_GOERLI : USDC_MAINNET 
-export const UNI  = new Token(chainId, "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984", 18) 
+export const UNI  = new Token(chainId, "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984", 18, "UNI", "Uniswap") 
 export const ONEINCH = new Token(chainId, "0x111111111117dC0aa78b770fA6A738034120C302", 18);
 
 export function isWETH(address: string): boolean {

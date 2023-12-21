@@ -1,3 +1,33 @@
+import { chainId } from "@/utils/token";
+import { ChainId } from "@uniswap/sdk-core";
+
+export const url = () => {
+  switch (chainId) {
+    case ChainId.MAINNET:
+      return "https://api.ethplorer.io/";
+    case ChainId.GOERLI:
+      return "https://goerli-api.ethplorer.io/";
+    case ChainId.SEPOLIA:
+      return "https://sepolia-api.ethplorer.io/";
+    case ChainId.BNB:
+      return "https://api.binplorer.io/";
+    default:
+      return "https://api.ethplorer.io/";
+  }
+};
+
+export const moralisChain = {
+  1: "eth",
+  5: "goerli",
+  11155111: "sepolia",
+  137: "polygon",
+  80001: "mumbai",
+  100: "gnosis",
+  56: "bsc",
+  8453: "base",
+  42161: "arbitrum",
+};
+
 export type ScanWallet = {
   address: string;
   ETH: Eth;

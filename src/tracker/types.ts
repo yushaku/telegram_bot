@@ -1,5 +1,6 @@
 export type ParseLog = {
   name: string;
+  decimals: number;
   symbol: string;
   amount: number;
   from: string;
@@ -36,13 +37,13 @@ export type Result = {
   functionName: string;
 };
 
-export type Transaction = {
+export type AnalysisTransaction = {
   hash: string;
   address: string;
   symbol: string;
   amount: number;
   price: number;
   total: number;
-  time: Date;
+  timestamp: Date;
   action: string;
 };

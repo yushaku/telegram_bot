@@ -73,12 +73,12 @@ export const WhaleSchema = new mongoose.Schema(
       default: null,
     },
     currentBlock: {
-      type: Number,
-      default: null,
+      type: Object,
+      default: { 1: 0 },
     },
     tokenHoldings: {
       type: [TokenSchema],
-      default: {},
+      required: false,
     },
     history: {
       type: [TrasactionSchema],

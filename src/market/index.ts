@@ -1,43 +1,33 @@
 import { httpClient } from "@/utils/axiosClient";
 import {
   COIN_MARKET_KEY,
+  DexMap,
   ETHERSCAN_ID,
   ETH_PLORER,
   MORALIS_KEY,
+  hashOfTransferTx,
 } from "@/utils/constants";
-import { MoralistokenPrice, ScanWallet, TopHolder } from "./types";
+import {
+  MoralistokenPrice,
+  ScanWallet,
+  TopHolder,
+  moralisChain,
+  url,
+} from "./types";
+import { url as urlProvider } from "@/utils/networks";
 import { chainId } from "@/utils/token";
-import { ChainId } from "@uniswap/sdk-core";
-import { EtherscanHistory } from "@/tracker/types";
-
-const url = () => {
-  switch (chainId) {
-    case ChainId.MAINNET:
-      return "https://api.ethplorer.io/";
-    case ChainId.GOERLI:
-      return "https://goerli-api.ethplorer.io/";
-    case ChainId.SEPOLIA:
-      return "https://sepolia-api.ethplorer.io/";
-    case ChainId.BNB:
-      return "https://api.binplorer.io/";
-    default:
-      return "https://api.ethplorer.io/";
-  }
-};
-
-const moralisChain = {
-  1: "eth",
-  5: "goerli",
-  11155111: "sepolia",
-  137: "polygon",
-  80001: "mumbai",
-  100: "gnosis",
-  56: "bsc",
-  8453: "base",
-  42161: "arbitrum",
-};
+import {
+  AnalysisTransaction,
+  EtherscanHistory,
+  ParseLog,
+} from "@/tracker/types";
+import Web3, { Log } from "web3";
+import { stableCoinList } from "@/utils/stableCoin";
+import { Erc20Token } from "@/lib/Erc20token";
 
 export class CoinMarket {
+  private provider = new Web3(urlProvider);
+
   protected coinmarket = httpClient({
     baseURL: "https://pro-api.coinmarketcap.com/v1/",
     headers: {
@@ -60,7 +50,7 @@ export class CoinMarket {
   });
 
   protected etherscan = httpClient({
-    baseURL: "https://api.etherscan.io/api/",
+    baseURL: "https://api.etherscan.io/api",
   });
 
   async tokenInfo(address: string) {
@@ -113,19 +103,13 @@ export class CoinMarket {
   //   return res.data;
   // }
 
-  async getWalletHistory(address: string) {
+  async getWalletHistory(address: string, startblock = 0) {
     try {
-      const res = await this.etherscan.get(`?address=${address}`, {
-        params: {
-          module: "account",
-          action: "txlist",
-          startblock: 0,
-          endblock: 9999999999,
-          apikey: ETHERSCAN_ID,
-        },
-      });
-
-      return res.data as EtherscanHistory;
+      const res = await fetch(
+        `https://api.etherscan.io/api?address=${address}&module=account&action=txlist&startblock=${startblock}&endblock=99999999&apikey=${ETHERSCAN_ID}`,
+      );
+      const data = await res.json();
+      return data as EtherscanHistory;
     } catch (error) {
       console.error(error);
     }
@@ -146,5 +130,110 @@ export class CoinMarket {
       },
     });
     return res.data as MoralistokenPrice;
+  }
+
+  async analysisHisory(address: string, blockNumber: number) {
+    const data = await this.getWalletHistory(address, blockNumber);
+    if (!data) return;
+
+    const transactions: Array<AnalysisTransaction> = [];
+    let maxBlockNumber = Number(data.result?.at(0)?.blockNumber) ?? 0;
+
+    for (let i = 0; i < data.result.length; i++) {
+      const tx = data.result[i];
+      const userAdd = tx.from;
+      const blockNumber = tx.blockNumber;
+      const timestamp = tx.timeStamp;
+
+      if (maxBlockNumber < Number(blockNumber)) {
+        maxBlockNumber = Number(blockNumber);
+      }
+
+      if (!DexMap.has(tx.to.toLocaleLowerCase())) continue;
+
+      try {
+        const receive = await this.getDetailTX(tx.hash);
+        for (let i = 0; i < receive.length; i++) {
+          const log = receive[i];
+          if (!log || stableCoinList.has(log.address)) return;
+
+          const res = await this.tokenPrice({
+            tokenAddr: log.address,
+            blockNumber,
+          });
+
+          const price = Number(res.usdPrice.toFixed(6));
+          const transaction = {
+            hash: tx.hash,
+            address: log.address,
+            symbol: log.symbol,
+            amount: log.amount,
+            price,
+            total: log.amount * price,
+            timestamp: new Date(Number(timestamp) * 1000),
+            action: log.to === userAdd ? "BUY" : "SELL",
+          };
+          transactions.push(transaction);
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    return {
+      transactions,
+      blockNumber: maxBlockNumber,
+    };
+  }
+
+  async getDetailTX(hash: string) {
+    const detail = await this.provider.eth.getTransactionReceipt(hash);
+    const userAdd = detail.from;
+
+    const promiseTransfers = detail.logs
+      .filter((log) => {
+        const hashFunc = log.topics?.at(0);
+        const topic1 = log.topics?.at(1)?.toString();
+        const topic2 = log.topics?.at(2)?.toString();
+
+        const from = "0x" + topic1?.slice(26);
+        const to = "0x" + topic2?.slice(26);
+
+        if (
+          hashFunc === hashOfTransferTx &&
+          (from === userAdd || to === userAdd)
+        ) {
+          console.log(log);
+          return true;
+        }
+      })
+      .map((log) => this.convertLog(log));
+
+    return Promise.all(promiseTransfers);
+  }
+
+  async convertLog(log: Log): Promise<ParseLog | undefined> {
+    const from = log.topics?.at(1)?.toString();
+    const to = log.topics?.at(2)?.toString();
+
+    if (!log?.address || !from || !to) return;
+    const token = new Erc20Token(log.address);
+    const [name, symbol, decimals] = await Promise.all([
+      token.name(),
+      token.symbol(),
+      token.getDecimals(),
+    ]);
+
+    const amount = Number(log.data) / 10 ** decimals;
+
+    return {
+      name,
+      symbol,
+      decimals,
+      amount,
+      address: log.address,
+      from: "0x" + from.slice(26),
+      to: "0x" + to.slice(26),
+    };
   }
 }

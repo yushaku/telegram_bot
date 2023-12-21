@@ -58,13 +58,13 @@ export function getWeb3Provider() {
   return new Web3(url);
 }
 
-export class Provider {
+export class SingletonProvider {
   private static instance: JsonRpcProvider;
   private constructor() {}
   public static getInstance(): JsonRpcProvider {
-    if (!Provider.instance) {
-      Provider.instance = new JsonRpcProvider(url);
+    if (!SingletonProvider.instance) {
+      SingletonProvider.instance = new JsonRpcProvider(url);
     }
-    return Provider.instance;
+    return SingletonProvider.instance;
   }
 }

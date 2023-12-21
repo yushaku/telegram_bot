@@ -5,7 +5,6 @@ import * as _ from "lodash";
 import { chainId } from "@/utils/token";
 import { WETH9 } from "@uniswap/sdk-core";
 import { UserEntity } from "@/utils/types";
-import { Erc20Token } from "@/lib/Erc20token";
 
 export class userService {
   private cache = new RedisService();

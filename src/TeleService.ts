@@ -1,7 +1,7 @@
 import { WrapToken } from "@/lib/WrapToken";
 import { getBalance, getBlock } from "@/lib/transaction";
 import { UniswapService } from "@/uniswap";
-import { getProvider } from "@/utils/networks";
+import { SingletonProvider } from "@/utils/networks";
 import {
   esstimateMsg,
   esstimateSwap,
@@ -23,7 +23,7 @@ import {
   SELL_TOKEN,
   WHALE_WALLET_ADD,
 } from "@/utils/replyTopic";
-import { UNI, WETH, chainId, isWETH } from "@/utils/token";
+import { chainId, isWETH } from "@/utils/token";
 import { isTransaction } from "@/utils/types";
 import {
   bigintToNumber,
@@ -33,7 +33,6 @@ import {
   shortenAddress,
   shortenAmount,
 } from "@/utils/utils";
-import { JsonRpcProvider } from "@ethersproject/providers";
 import { Token, WETH9 } from "@uniswap/sdk-core";
 import { RedisService, isEstimateTrade, isOrder } from "lib/RedisService";
 import TelegramBot, { InlineKeyboardButton, User } from "node-telegram-bot-api";
@@ -43,78 +42,14 @@ import { WhaleService } from "./database/services/Whale";
 import { Erc20Token } from "./lib/Erc20token";
 import { CoinMarket } from "./market";
 import { CHANGE_SWAP_INPUT_TOKEN, CLOSE_BUTTON } from "./utils/replyButton";
-import { Tracker } from "./tracker";
 
 export class TeleService {
-  private provider: JsonRpcProvider;
+  private provider = SingletonProvider.getInstance();
   private cache = new RedisService();
   private market = new CoinMarket();
   private uniswap = new UniswapService();
   private whaleService = new WhaleService();
   private userService = new userService();
-
-  constructor() {
-    this.provider = getProvider();
-  }
-
-  async hi(userId: number) {
-    const account = await this.userService.getAccount(userId);
-    if (!account) return;
-
-    const tokenA = WETH;
-    const tokenB = UNI;
-    const amount = 0.01;
-
-    console.log("create trade");
-
-    const trade = await this.uniswap.generateTrade({
-      tokenA,
-      tokenB,
-      amount,
-      account,
-    });
-
-    console.log("execute trade");
-    if (!trade) return "Trade failed";
-
-    const a = await this.uniswap.executeTrade({ trade, account });
-
-    if (!isTransaction(a)) return a;
-
-    console.log(a.hash);
-    return `Buying...\nCheckout [etherscan](https://goerli.etherscan.io/tx/${a.hash})`;
-  }
-
-  async hello(userId: number) {
-    const account = await this.userService.getAccount(userId);
-    if (!account) return;
-
-    const tokenA = WETH;
-    const tokenB = UNI;
-    const amount = 0.01;
-
-    console.log("create trade");
-
-    const route = await this.uniswap.generateRoute({
-      walletAddress: account.address,
-      tokenA,
-      tokenB,
-      amount,
-      account,
-    });
-
-    if (!route) return "create route failed";
-
-    console.log("execute trade");
-    const tx = await this.uniswap.executeRoute({ route, account });
-    if (!isTransaction(tx)) return "Route execute failed";
-
-    const receive = await tx.wait();
-    if (receive.status === 0) {
-      return "Swap transaction failed";
-    }
-    return `Buy completed\ncheckout [etherscan](https://goerli.etherscan.io/${receive.transactionHash})`;
-  }
 
   async commandStart(user: User) {
     await this.userService.findOrCreate(user);
@@ -242,8 +177,29 @@ export class TeleService {
     };
   }
 
+  //TODO: analysisWallet
   async analysisWallet(address: string) {
-    this;
+    const whale = await this.whaleService.findByAdress(address);
+    const currentNumber = (whale?.currentBlock[chainId] as number) ?? 0;
+
+    const txs = await this.market.analysisHisory(address, currentNumber);
+    if (!txs) return { text: "Nothing in wallet history for analysing" };
+
+    const { transactions, blockNumber } = txs;
+    console.log(transactions);
+
+    await this.whaleService.create({
+      address,
+      history: transactions,
+      currentBlock: {
+        ...whale?.currentBlock,
+        [chainId]: blockNumber,
+      },
+    });
+
+    return {
+      text: "ok",
+    };
   }
 
   async addWhaleWallet({
@@ -275,7 +231,7 @@ export class TeleService {
       JSON.stringify({
         wallet: address,
         channelId,
-        type: "remove",
+        type: "add",
       }),
     );
 
@@ -312,7 +268,7 @@ export class TeleService {
       JSON.stringify({
         wallet: address,
         channelId,
-        type: "add",
+        type: "remove",
       }),
     );
 
@@ -394,7 +350,7 @@ export class TeleService {
 
   async changeSwapInputToken(userId: number, address: string) {
     const user = await this.userService.findById(userId);
-    const token = new Erc20Token(address, this.provider);
+    const token = new Erc20Token(address);
     const name = token.name();
     if (!name)
       return {
@@ -442,9 +398,8 @@ export class TeleService {
 
     const tokenFrom = new Erc20Token(
       user.tokenIn.address ?? WETH9[chainId].address,
-      this.provider,
     );
-    const tokenTo = new Erc20Token(address, this.provider);
+    const tokenTo = new Erc20Token(address);
     const { name, symbol, balance } = await tokenTo.getInfo(acc.address);
     const fromSymbol = await tokenFrom.symbol();
 
@@ -489,7 +444,7 @@ export class TeleService {
   }
 
   async getTopHolders(address: string) {
-    const token = new Erc20Token(address, this.provider);
+    const token = new Erc20Token(address);
     const [name, symbol, top_holders] = await Promise.all([
       token.name(),
       token.symbol(),
@@ -543,7 +498,7 @@ export class TeleService {
     if (!acc) return { text: "Account not found", buttons: {} };
 
     if (isWETH(tokenAddress)) {
-      const weth = new WrapToken(tokenAddress, "WETH", 18, this.provider);
+      const weth = new WrapToken(tokenAddress);
       let gas: string | undefined;
       type === "BUY"
         ? (gas = await weth.estimateGas("deposit", amount))
@@ -656,8 +611,8 @@ export class TeleService {
   }) {
     const user = await this.userService.findById(userId);
     const tokenIn = user.tokenIn;
-    const tokenOut = new Erc20Token(tokenAddress, this.provider);
-    const decimals = await tokenOut.getDecimal();
+    const tokenOut = new Erc20Token(tokenAddress);
+    const decimals = await tokenOut.getDecimals();
 
     if (!decimals) return { text: "Wrong token address" };
 
@@ -751,7 +706,7 @@ export class TeleService {
     try {
       if (isOrder(data)) {
         const { tokenAddress, type } = data;
-        const weth = new WrapToken(tokenAddress, "WETH", 18, this.provider);
+        const weth = new WrapToken(tokenAddress);
         const tx =
           type === "BUY"
             ? await weth.wrap(data.amount, account.privateKey)
@@ -828,8 +783,8 @@ export class TeleService {
     to: string;
     account: string;
   }) {
-    const tokenA = new Erc20Token(from, this.provider);
-    const tokenB = new Erc20Token(to, this.provider);
+    const tokenA = new Erc20Token(from);
+    const tokenB = new Erc20Token(to);
 
     const [infoA, infoB] = await Promise.all([
       tokenA.getInfo(account),
@@ -886,7 +841,7 @@ export class TeleService {
     const user = await this.userService.findById(userId);
     const address = user.tokenIn.address;
     const account = user.mainAccount;
-    const token = new Erc20Token(address, this.provider);
+    const token = new Erc20Token(address);
     return token.getInfo(account?.address ?? "0x0");
   }
 
