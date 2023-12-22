@@ -30,7 +30,7 @@ export const UserSchema = new mongoose.Schema(
       default: [],
     },
     mainAccount: {
-      type: String,
+      type: AccountSchema,
     },
     slippage: {
       type: Number,

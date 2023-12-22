@@ -64,6 +64,14 @@ Premium Benefits ⭐
 🛒 Buy for $200 per 30 days! Use the pay buttons below to start or extend your subscription.
 `;
 
+export const listTokensMsg = (address: string = "") => `
+💰 Introducing our fast buy menu. 
+👉 Purchase tokens with a single click.
+👉 Our system uses w1 only and private transactionsto to safeguard against MEV attacks 
+
+📈 Trading on account: \`${shortenAddress(address, 6)}\`
+`;
+
 export const walletMsg = ({
   block,
   ethPrice,

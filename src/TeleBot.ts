@@ -4,7 +4,7 @@ import TelegramBot from "node-telegram-bot-api";
 import { TOKENS_BUTTONS, WALLET_BUTTONS } from "utils/replyButton";
 import {
   WHALE_WALLET_ADD,
-  BUY_TOKEN,
+  LIST_TOKEN,
   CLOSE,
   CREATE_WALLET,
   FEATURES_WALLET,
@@ -19,6 +19,7 @@ import {
 } from "utils/replyTopic";
 import { shortenAddress } from "utils/utils";
 import { Tracker } from "./tracker";
+import { listTokensMsg } from "./utils/replyMessage";
 
 export class TeleBot {
   private readonly bot: TelegramBot;
@@ -80,10 +81,7 @@ export class TeleBot {
       const acc = await this.teleService.getAccount(msg.from.id);
       this.bot.sendMessage(
         msg.chat.id,
-        `💰 Introducing our fast buy menu\nPurchase tokens with a single click.\nOur system uses w1 only and private transactions \nto safeguard against MEV attacks \n\n📈 Trading on account: \`${shortenAddress(
-          acc?.address,
-          6,
-        )}\``,
+        listTokensMsg(acc?.address),
         TOKENS_BUTTONS,
       );
     });
@@ -140,6 +138,8 @@ export class TeleBot {
 
     // MARK: /address of smartcontract
     this.bot.onText(/^(0x)?[0-9a-fA-F]{40}$/, async (msg) => {
+      console.log(msg);
+
       const address = msg.text;
       const userId = msg.from?.id;
       if (!address || !userId || msg?.reply_to_message) return;
@@ -167,6 +167,7 @@ export class TeleBot {
 
       // MARK: Send address of token to swap
       if (isAddress(action)) {
+        this.bot.deleteMessage(chatId, msg.message_id);
         const { text, buttons } = await this.teleService.checkToken({
           address: action,
           userId,
@@ -313,9 +314,10 @@ export class TeleBot {
         switch (type) {
           // MARK: buy amount of token
           case "buy_custom": {
+            const { symbol } = await this.teleService.getDefaultToken(userId);
             const sent = await this.bot.sendMessage(
               chatId,
-              "✏️  Enter a custom buy amount. Greater or equal to 0.01",
+              `✏️  Enter amount of ${symbol} swap to this token. Greater or equal to 0.01`,
               { reply_markup: { force_reply: true } },
             );
 
@@ -369,6 +371,9 @@ export class TeleBot {
               parse_mode: "Markdown",
               chat_id: sent.chat.id,
               message_id: sent.message_id,
+              reply_markup: {
+                inline_keyboard: [[{ text: "✅", callback_data: NO_CALLBACK }]],
+              },
             });
           }
 
@@ -394,7 +399,7 @@ export class TeleBot {
             const { symbol } = await this.teleService.getDefaultToken(userId);
             const sent = await this.bot.sendMessage(
               chatId,
-              `💎 Sell this token to receive ${symbol}\n✏️  Enter a custom sell amount.\nAmount  Greater or equal to 0.01`,
+              `💎 Swap this token to receive ${symbol}\n✏️  Enter a custom sell amount.\nAmount  Greater or equal to 0.01`,
               { reply_markup: { force_reply: true } },
             );
 
@@ -445,11 +450,6 @@ export class TeleBot {
           return this.bot.sendMessage(chatId, text, WALLET_BUTTONS);
         }
 
-        // TODO: Swap now
-        case "swap_now": {
-          break;
-        }
-
         // TODO: Provide liquidity to pool
         case INIT_POOL: {
           return this.bot.sendMessage(chatId, "ok");
@@ -483,12 +483,6 @@ export class TeleBot {
               this.bot.sendMessage(replyMsg.chat.id, text);
             },
           );
-        }
-
-        // MARK: remove message
-        case CLOSE: {
-          if (!query.message) return;
-          return this.bot.deleteMessage(chatId, query.message.message_id);
         }
 
         // MARK: list token for change input's swap
@@ -622,17 +616,23 @@ export class TeleBot {
         }
 
         // MARK: List tokens too same /tokens command
-        case BUY_TOKEN: {
-          if (!msg.from) return;
-          const acc = await this.teleService.getAccount(msg.from.id);
+        case LIST_TOKEN: {
+          if (query.message) {
+            this.bot.deleteMessage(chatId, query.message.message_id);
+          }
+          const userId = msg.chat.id;
+          const acc = await this.teleService.getAccount(userId);
           this.bot.sendMessage(
             msg.chat.id,
-            `💰 Introducing our fast buy menu\nPurchase tokens with a single click.\nOur system uses w1 only and private transactions \nto safeguard against MEV attacks \n\n📈 Trading on account: \`${shortenAddress(
-              acc?.address,
-              6,
-            )}\``,
+            listTokensMsg(acc?.address),
             TOKENS_BUTTONS,
           );
+        }
+
+        // MARK: remove message
+        case CLOSE: {
+          if (!query.message) return;
+          return this.bot.deleteMessage(chatId, query.message.message_id);
         }
 
         case NO_CALLBACK:

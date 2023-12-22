@@ -13,14 +13,11 @@ import {
   walletMsg,
 } from "@/utils/replyMessage";
 import {
-  BUY_LIMIT,
-  BUY_TOKEN,
+  LIST_TOKEN,
   CHANGE_INPUT_CURRENCY,
   CLOSE,
   NO_CALLBACK,
   REDIS_WHALE_WALLET,
-  SELL_LIMIT,
-  SELL_TOKEN,
   WHALE_WALLET_ADD,
 } from "@/utils/replyTopic";
 import { chainId, isWETH } from "@/utils/token";
@@ -177,7 +174,6 @@ export class TeleService {
     };
   }
 
-  //TODO: analysisWallet
   async analysisWallet(address: string) {
     const whale = await this.whaleService.findByAdress(address);
     const currentNumber = (whale?.currentBlock[chainId] as number) ?? 0;
@@ -429,10 +425,9 @@ export class TeleService {
             },
           ],
           [
-            { text: "↪️  Buy Menu", callback_data: `sell ${address}` },
-            { text: "🎛️ Menu", callback_data: "MENU" },
+            { text: "🎛️ Menu", callback_data: LIST_TOKEN },
+            { text: "✖️ Close", callback_data: CLOSE },
           ],
-          [{ text: "✖️ Close", callback_data: CLOSE }],
         ],
       },
     };
@@ -819,15 +814,10 @@ export class TeleService {
         reply_markup: {
           inline_keyboard: [
             [
-              { text: "Buy Token", callback_data: BUY_TOKEN },
-              { text: "Sell Token", callback_data: SELL_TOKEN },
-            ],
-            [
-              { text: "Buy Limit", callback_data: BUY_LIMIT },
-              { text: "Sell Limit", callback_data: SELL_LIMIT },
-            ],
-            [
               { text: "Token Balance", callback_data: "Token Balance" },
+              { text: "Buy/Sell Tokens", callback_data: LIST_TOKEN },
+            ],
+            [
               { text: "Wallet Analysis", callback_data: "Wallet Analysis" },
               { text: "Flex Pnl", callback_data: "Flex Pnl" },
             ],

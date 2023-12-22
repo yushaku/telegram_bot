@@ -8,7 +8,7 @@ export const IMPORT_WALLET = "import_wallet";
 export const CREATE_WALLET = "create_wallet";
 export const LIST_WALLET = "list_wallet";
 
-export const BUY_TOKEN = "buy_token";
+export const LIST_TOKEN = "list_token";
 export const BUY_LIMIT = "buy_limit";
 export const SELL_TOKEN = "sell_token";
 export const SELL_LIMIT = "sell_limit";

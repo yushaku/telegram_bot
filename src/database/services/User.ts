@@ -56,15 +56,12 @@ export class userService {
 
   async update(user: UserEntity & { userId: number }) {
     await this.cache.setUser(user.userId, user);
-    const a = await UserModel.findByIdAndUpdate(user.userId, user);
-    console.log(a);
+    return UserModel.findByIdAndUpdate(user.userId, user);
   }
-
-  async delete(user: User) {}
 
   async getAccount(userId: number) {
     const user = await this.findById(userId);
-    const acc = user.mainAccount;
+    const acc = user?.mainAccount;
     if (acc) return acc;
 
     const firstAcc = user.accounts?.at(0);
