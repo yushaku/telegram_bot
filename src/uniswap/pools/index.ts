@@ -1,10 +1,5 @@
-import {
-  CurrencyAmount,
-  Ether,
-  NativeCurrency,
-  Token,
-} from "@uniswap/sdk-core";
-import uniswapV2poolABI from "abis/uniV2pool.json";
+import { SingletonProvider } from "@/utils/networks";
+import { CurrencyAmount, Token } from "@uniswap/sdk-core";
 import { Pair, Route as RouteV2 } from "@uniswap/v2-sdk";
 import IUniswapV3PoolABI from "@uniswap/v3-core/artifacts/contracts/interfaces/IUniswapV3Pool.sol/IUniswapV3Pool.json";
 import {
@@ -12,18 +7,14 @@ import {
   FeeAmount,
   computePoolAddress,
 } from "@uniswap/v3-sdk";
+import uniswapV2poolABI from "abis/uniV2pool.json";
 import { Contract, ethers } from "ethers";
-import { JsonRpcProvider } from "@ethersproject/providers";
-import { PoolInfo } from "./types";
+import { PoolInfo } from "../types";
 
 export class UniPools {
-  private provider: JsonRpcProvider;
+  protected provider = SingletonProvider.getInstance();
 
-  constructor(provider: JsonRpcProvider) {
-    this.provider = provider;
-  }
-
-  async poolV3(tokenA: Token, tokenB: Token): Promise<PoolInfo> {
+  async getPoolV3(tokenA: Token, tokenB: Token): Promise<PoolInfo> {
     const poolAddress = computePoolAddress({
       factoryAddress: FACTORY_ADDRESS_V3,
       tokenA,
@@ -58,7 +49,7 @@ export class UniPools {
     };
   }
 
-  async poolV2(tokenA: Token, tokenB: Token): Promise<Pair> {
+  async getPoolV2(tokenA: Token, tokenB: Token): Promise<Pair> {
     const pairAddress = Pair.getAddress(tokenA, tokenB);
 
     const pairContract = new ethers.Contract(
@@ -80,49 +71,10 @@ export class UniPools {
   }
 
   async getRouteV2(tokenA: Token, tokenB: Token) {
-    const pair = await this.poolV2(tokenA, tokenB);
+    const pair = await this.getPoolV2(tokenA, tokenB);
     const route = new RouteV2([pair], tokenB, tokenA);
     console.log(route.midPrice.toSignificant(6)); // 1901.08
     console.log(route.midPrice.invert().toSignificant(6)); // 0.000526017
     return route;
   }
-}
-
-export async function getPoolInfoV3(
-  tokenA: Token,
-  tokenB: Token,
-  provider: JsonRpcProvider,
-): Promise<PoolInfo> {
-  const currentPoolAddress = computePoolAddress({
-    factoryAddress: FACTORY_ADDRESS_V3,
-    tokenA,
-    tokenB,
-    fee: FeeAmount.MEDIUM,
-  });
-
-  const poolContract = new ethers.Contract(
-    currentPoolAddress,
-    IUniswapV3PoolABI.abi,
-    provider,
-  );
-
-  const [token0, token1, fee, tickSpacing, liquidity, slot0] =
-    await Promise.all([
-      poolContract.token0(),
-      poolContract.token1(),
-      poolContract.fee(),
-      poolContract.tickSpacing(),
-      poolContract.liquidity(),
-      poolContract.slot0(),
-    ]);
-
-  return {
-    token0,
-    token1,
-    fee,
-    tickSpacing,
-    liquidity,
-    sqrtPriceX96: slot0[0],
-    tick: slot0[1],
-  };
 }

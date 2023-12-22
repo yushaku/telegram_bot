@@ -1,6 +1,5 @@
-import { UniPools, UniRoute } from "@/uniswap";
+import { UniPools, UniSwap } from "@/uniswap";
 import { SWAP_ROUTER_ADDRESS } from "@/utils/constants";
-import { getProvider } from "@/utils/networks";
 import { UNI, chainId } from "@/utils/token";
 import { isTransactionReceipt } from "@/utils/types";
 import { toReadableAmount } from "@/utils/utils";
@@ -22,12 +21,11 @@ const tokens = {
   poolFee: FeeAmount.MEDIUM,
 };
 
-const provider = getProvider();
-const pool = new UniPools(provider);
+const pool = new UniPools();
 const amount = 10;
 
 describe("Uni swap from token A to B", () => {
-  const uniTrade = new UniRoute();
+  const uniTrade = new UniSwap();
   let trade: Trade<Currency, Currency, TradeType> | undefined;
 
   beforeAll(async () => {
@@ -37,7 +35,7 @@ describe("Uni swap from token A to B", () => {
   });
 
   test("Get Pools", async () => {
-    const result = await pool.poolV3(tokens.in, tokens.out);
+    const result = await pool.getPoolV3(tokens.in, tokens.out);
 
     expect(result.token0).toBe(tokens.out.address);
     expect(result.token1).toBe(tokens.in.address);

@@ -1,6 +1,5 @@
 import { MixedRouteSDK, ONE, Protocol, Trade } from "@uniswap/router-sdk";
 import {
-  ChainId,
   Currency,
   CurrencyAmount,
   Fraction,
@@ -117,49 +116,6 @@ export enum RouterPreference {
   X = "uniswapx",
   API = "api",
 }
-
-export interface GetQuoteArgs {
-  tokenInAddress: string;
-  tokenInChainId: ChainId;
-  tokenInDecimals: number;
-  tokenInSymbol?: string;
-  tokenOutAddress: string;
-  tokenOutChainId: ChainId;
-  tokenOutDecimals: number;
-  tokenOutSymbol?: string;
-  amount: string;
-  account?: string;
-  routerPreference: RouterPreference | typeof INTERNAL_ROUTER_PREFERENCE_PRICE;
-  tradeType: TradeType;
-  needsWrapIfUniswapX: boolean;
-  uniswapXForceSyntheticQuotes: boolean;
-  uniswapXEthOutputEnabled: boolean;
-  uniswapXExactOutputEnabled: boolean;
-  // legacy field indicating the user disabled UniswapX during the opt-in period, or dismissed the UniswapX opt-in modal.
-  userDisabledUniswapX: boolean;
-  // temporary field indicating the user disabled UniswapX during the transition to the opt-out model
-  userOptedOutOfUniswapX: boolean;
-  isUniswapXDefaultEnabled: boolean;
-  sendPortionEnabled: boolean;
-  inputTax: Percent;
-  outputTax: Percent;
-}
-
-export type GetQuickQuoteArgs = {
-  amount: string;
-  tokenInAddress: string;
-  tokenInChainId: ChainId;
-  tokenInDecimals: number;
-  tokenInSymbol?: string;
-  tokenOutAddress: string;
-  tokenOutChainId: ChainId;
-  tokenOutDecimals: number;
-  tokenOutSymbol?: string;
-  tradeType: TradeType;
-  inputTax: Percent;
-  outputTax: Percent;
-};
-// from https://github.com/Uniswap/routing-api/blob/main/lib/handlers/schema.ts
 
 type TokenInRoute = Pick<Token, "address" | "chainId" | "symbol" | "decimals">;
 
@@ -683,3 +639,58 @@ type UniswapXConfig = {
 };
 
 export type RoutingConfig = (UniswapXConfig | ClassicAPIConfig)[];
+
+export type PoolInfo = {
+  token0: string;
+  token1: string;
+  fee: number;
+  tickSpacing: number;
+  sqrtPriceX96: BigNumber;
+  liquidity: BigNumber;
+  tick: number;
+};
+
+export type EstimateTrade = {
+  tokenA: Token;
+  tokenB: Token;
+  amount: number;
+  type: "estimate_trade";
+};
+
+export type ITrade = {
+  swaps: Swap[];
+  tradeType: number;
+};
+
+export type Swap = {
+  inputAmount: PutAmount;
+  outputAmount: PutAmount;
+  route: Route;
+};
+
+export type PutAmount = {
+  numerator: number[];
+  denominator: number[];
+  currency: Currency;
+  decimalScale: number[];
+};
+
+export type Route = {
+  _midPrice: null;
+  pools: Pool[];
+  tokenPath: Currency[];
+  input: Currency;
+  output: Currency;
+};
+
+export type Pool = {
+  token0: Currency;
+  token1: Currency;
+  fee: number;
+  sqrtRatioX96: number[];
+  liquidity: number[];
+  tickCurrent: number;
+  tickDataProvider: TickDataProvider;
+};
+
+export type TickDataProvider = {};

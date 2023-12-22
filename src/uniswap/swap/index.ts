@@ -1,4 +1,4 @@
-import { getProvider } from "@/utils/networks";
+import { SingletonProvider, getProvider } from "@/utils/networks";
 import { chainId } from "@/utils/token";
 import { JsonRpcProvider, TransactionRequest } from "@ethersproject/providers";
 import {
@@ -37,12 +37,8 @@ import {
 import { Account } from "utils/types";
 import { fromReadableAmount, fromReadableToAmount } from "utils/utils";
 
-export class UniRoute {
-  protected provider: JsonRpcProvider;
-
-  constructor(provider?: JsonRpcProvider) {
-    this.provider = provider ?? getProvider();
-  }
+export class UniSwap {
+  protected provider = SingletonProvider.getInstance();
 
   async generateTrade({
     tokenA,
@@ -57,9 +53,7 @@ export class UniRoute {
     amount: number;
     account: Account;
   }) {
-    const tokenIn = new Erc20Token(tokenA.address, this.provider);
-    await tokenIn.checkDecimals();
-
+    const tokenIn = new Erc20Token(tokenA.address);
     const [currencyAmount, res] = await Promise.all([
       tokenIn.balanceOf(account.address),
       tokenIn.checkTokenApproval({
@@ -74,8 +68,8 @@ export class UniRoute {
       throw new Error("Insufficient token balance 🆘");
     }
 
-    const uniPools = new UniPools(this.provider);
-    const poolInfo = await uniPools.poolV3(tokenA, tokenB);
+    const uniPools = new UniPools();
+    const poolInfo = await uniPools.getPoolV3(tokenA, tokenB);
 
     const pool = new Pool(
       tokenA,
@@ -149,7 +143,7 @@ export class UniRoute {
     amount: number;
     account: Account;
   }): Promise<SwapRoute | null> {
-    const tokenIn = new Erc20Token(tokenA.address, this.provider);
+    const tokenIn = new Erc20Token(tokenA.address);
 
     const res = await tokenIn.checkTokenApproval({
       amount,
