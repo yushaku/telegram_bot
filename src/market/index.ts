@@ -33,7 +33,6 @@ export class CoinMarket {
   protected coinmarket = httpClient({
     baseURL: "https://pro-api.coinmarketcap.com/v1/",
     headers: {
-      Authorization: `Bearer ${COIN_MARKET_KEY}`,
       "X-CMC_PRO_API_KEY": COIN_MARKET_KEY,
     },
   });
@@ -67,6 +66,8 @@ export class CoinMarket {
   async scanWallet(address: string): Promise<ScanWallet> {
     const a = await this.ethplorer.get(`getAddressInfo/${address}`, {
       params: {
+        showTxsCount: false,
+        showETHTotals: true,
         apiKey: "freekey",
       },
     });
@@ -152,7 +153,6 @@ export class CoinMarket {
   async analysisHisory(address: string, currentblock: number) {
     const data = await this.getWalletHistory(address, currentblock);
     if (!data) return;
-    Bun.write("./history.json", JSON.stringify(data, null, 2));
 
     const trade: Array<AnalysisTrade> = [];
     const history: Array<AnalysisHistory> = [];
@@ -184,7 +184,7 @@ export class CoinMarket {
           });
 
           const price = Number(res.usdPrice.toFixed(6));
-          const transaction = {
+          trade.push({
             hash: tx.hash,
             address: log.address,
             symbol: log.symbol,
@@ -193,8 +193,7 @@ export class CoinMarket {
             action: log.to === userAdd ? "BUY" : "SELL",
             price,
             timestamp,
-          };
-          trade.push(transaction);
+          });
         }
       } catch (err) {
         console.error(err);

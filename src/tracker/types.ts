@@ -45,7 +45,7 @@ export type AnalysisTrade = {
   price: number;
   total: number;
   timestamp: Date;
-  action: string;
+  action: "BUY" | "SELL";
 };
 
 export type AnalysisHistory = {

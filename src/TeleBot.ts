@@ -294,14 +294,18 @@ export class TeleBot {
 
           // MARK: analysis whale trading
           case "analysis_wallet": {
-            this.bot.sendMessage(
+            const sent = await this.bot.sendMessage(
               chatId,
               "Depend on wallet's history, it might take a few minutes.\nOn a way to analysis...\nPlease wait...",
             );
-            const { text } = await this.teleService.analysisWallet(address);
-            return this.bot.sendMessage(chatId, text, {
+            const { text, buttons } =
+              await this.teleService.analysisWallet(address);
+            return this.bot.editMessageText(text, {
+              chat_id: sent.chat.id,
+              message_id: sent.message_id,
               parse_mode: "Markdown",
               disable_web_page_preview: true,
+              ...buttons,
             });
           }
         }

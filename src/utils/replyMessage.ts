@@ -1,9 +1,10 @@
 import { BigNumber } from "ethers";
+import moment from "moment";
 import { formatUnits } from "ethers/lib/utils";
 import { shortenAddress, toReadableAmount } from "./utils";
 import { ScanWallet } from "@/market/types";
 import { urlScan } from "./networks";
-import { ParseLog } from "@/tracker/types";
+import { AnalysisTrade, ParseLog } from "@/tracker/types";
 
 export const START_MESSAGE = `
 What would you like to do today?
@@ -270,4 +271,19 @@ Swap from \`${sendTx?.symbol}\` to \`${receiveTx?.symbol}\`
 Sent: ${sendTx?.amount} [${sendTx?.symbol}](${urlScan}/token/${sendTx?.address}) (~$33,329)
 Received: ${receiveTx?.amount} [${receiveTx?.symbol}](${urlScan}/token/${receiveTx?.address}) (~$33,260)
 Check Tx hash: [Etherscan](${urlScan}/tx/${hash})
+`;
+
+export const tradeHistoryMsg = (trade: AnalysisTrade[]) => `
+Wallet Trade history 🤟
+-----------------------
+${trade
+  .map(
+    ({ symbol, amount, hash, total, timestamp, action }, i) => `
+- [Transaction-${i}](${urlScan}/tx/${hash}) || ${moment(timestamp).format("L")}
+  ${action === "BUY" ? "🟩" : "🟥"} User ${action} \`${amount.toFixed(
+    4,
+  )}\` ${symbol} (💲${total.toFixed(4)}) 
+`,
+  )
+  .join("\n")}
 `;

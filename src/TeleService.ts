@@ -9,6 +9,7 @@ import {
   reportMsg,
   scanWalletmsg,
   tokenDetail,
+  tradeHistoryMsg,
   walletDetail,
   walletMsg,
 } from "@/utils/replyMessage";
@@ -39,6 +40,7 @@ import { WhaleService } from "./database/services/Whale";
 import { Erc20Token } from "./lib/Erc20token";
 import { CoinMarket } from "./market";
 import { CHANGE_SWAP_INPUT_TOKEN, CLOSE_BUTTON } from "./utils/replyButton";
+import { AnalysisHistory, AnalysisTrade } from "./tracker/types";
 
 export class TeleService {
   private provider = SingletonProvider.getInstance();
@@ -177,6 +179,9 @@ export class TeleService {
   async analysisWallet(address: string) {
     const whale = await this.whaleService.find(address);
     const currentNumber = (whale?.currentBlock[chainId] as number) ?? 0;
+    const currentHistory =
+      (whale?.history as unknown as AnalysisHistory[]) ?? [];
+    const currentTrade = (whale?.trade as unknown as AnalysisTrade[]) ?? [];
 
     const txs = await this.market.analysisHisory(address, currentNumber);
     if (!txs) return { text: "Nothing in wallet history for analysing" };
@@ -186,8 +191,8 @@ export class TeleService {
 
     await this.whaleService.updateHistory({
       address,
-      history,
-      trade,
+      history: currentHistory.concat(history),
+      trade: currentTrade.concat(trade),
       currentBlock: {
         ...whale?.currentBlock,
         [chainId]: blockNumber,
@@ -195,7 +200,8 @@ export class TeleService {
     });
 
     return {
-      text: "ok",
+      text: tradeHistoryMsg([...trade, ...currentTrade].slice(0, 10)),
+      buttons: CLOSE_BUTTON,
     };
   }
 
