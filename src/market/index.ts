@@ -1,7 +1,7 @@
 import { httpClient } from "@/utils/axiosClient";
 import {
   COIN_MARKET_KEY,
-  DexMap,
+  dexMap,
   ETHERSCAN_ID,
   ETH_PLORER,
   MORALIS_KEY,
@@ -17,8 +17,10 @@ import {
 import { url as urlProvider } from "@/utils/networks";
 import { chainId } from "@/utils/token";
 import {
-  AnalysisTransaction,
+  AnalysisHistory,
+  AnalysisTrade,
   EtherscanHistory,
+  EtherscanResult,
   ParseLog,
 } from "@/tracker/types";
 import Web3, { Log } from "web3";
@@ -122,44 +124,63 @@ export class CoinMarket {
     tokenAddr: string;
     blockNumber: number | string;
   }) {
-    const res = await this.moralis.get(`erc20/${tokenAddr}/price`, {
-      params: {
-        chain: moralisChain[chainId as keyof typeof moralisChain],
-        exchange: "uniswapv3",
-        to_block: blockNumber,
-      },
-    });
-    return res.data as MoralistokenPrice;
+    try {
+      const res = await this.moralis.get(`erc20/${tokenAddr}/price`, {
+        params: {
+          chain: moralisChain[chainId as keyof typeof moralisChain],
+          exchange: "uniswapv3",
+          to_block: blockNumber,
+        },
+      });
+      return res.data as MoralistokenPrice;
+    } catch (error) {
+      try {
+        const res = await this.moralis.get(`erc20/${tokenAddr}/price`, {
+          params: {
+            chain: moralisChain[chainId as keyof typeof moralisChain],
+            exchange: "uniswapv2",
+            to_block: blockNumber,
+          },
+        });
+        return res.data as MoralistokenPrice;
+      } catch (error) {
+        return { usdPrice: 0 };
+      }
+    }
   }
 
-  async analysisHisory(address: string, blockNumber: number) {
-    const data = await this.getWalletHistory(address, blockNumber);
+  async analysisHisory(address: string, currentblock: number) {
+    const data = await this.getWalletHistory(address, currentblock);
     if (!data) return;
+    Bun.write("./history.json", JSON.stringify(data, null, 2));
 
-    const transactions: Array<AnalysisTransaction> = [];
-    let maxBlockNumber = Number(data.result?.at(0)?.blockNumber) ?? 0;
+    const trade: Array<AnalysisTrade> = [];
+    const history: Array<AnalysisHistory> = [];
+    const maxBlockNumber = Number(data.result?.at(-1)?.blockNumber) ?? 0;
 
-    for (let i = 0; i < data.result.length; i++) {
-      const tx = data.result[i];
+    for (const tx of data.result) {
+      if (isNotValidTx(tx)) continue;
       const userAdd = tx.from;
-      const blockNumber = tx.blockNumber;
-      const timestamp = tx.timeStamp;
+      const timestamp = new Date(Number(tx.timeStamp) * 1000);
 
-      if (maxBlockNumber < Number(blockNumber)) {
-        maxBlockNumber = Number(blockNumber);
-      }
+      history.push({
+        hash: tx.hash,
+        blockNumber: tx.blockNumber,
+        from: tx.from,
+        to: tx.to,
+        value: tx.value,
+        timestamp,
+      });
 
-      if (!DexMap.has(tx.to.toLocaleLowerCase())) continue;
-
+      if (isNotTradeTx(tx)) continue;
       try {
         const receive = await this.getDetailTX(tx.hash);
-        for (let i = 0; i < receive.length; i++) {
-          const log = receive[i];
-          if (!log || stableCoinList.has(log.address)) return;
+        for (const log of receive) {
+          if (!log || stableCoinList.has(log.address)) continue;
 
           const res = await this.tokenPrice({
             tokenAddr: log.address,
-            blockNumber,
+            blockNumber: tx.blockNumber,
           });
 
           const price = Number(res.usdPrice.toFixed(6));
@@ -168,20 +189,21 @@ export class CoinMarket {
             address: log.address,
             symbol: log.symbol,
             amount: log.amount,
-            price,
             total: log.amount * price,
-            timestamp: new Date(Number(timestamp) * 1000),
             action: log.to === userAdd ? "BUY" : "SELL",
+            price,
+            timestamp,
           };
-          transactions.push(transaction);
+          trade.push(transaction);
         }
-      } catch (error) {
-        console.error(error);
+      } catch (err) {
+        console.error(err);
       }
     }
 
     return {
-      transactions,
+      history,
+      trade,
       blockNumber: maxBlockNumber,
     };
   }
@@ -236,4 +258,23 @@ export class CoinMarket {
       to: "0x" + to.slice(26),
     };
   }
+}
+
+function isNotValidTx(tx: EtherscanResult) {
+  if (
+    tx.functionName === "" ||
+    tx.functionName === "approve(address _spender, uint256 _value" ||
+    tx.isError === "1"
+  ) {
+    return true;
+  }
+  return false;
+}
+
+function isNotTradeTx(tx: EtherscanResult) {
+  if (!dexMap.has(tx.to.toLocaleLowerCase())) {
+    return true;
+  }
+
+  return false;
 }

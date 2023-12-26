@@ -11,10 +11,10 @@ export type ParseLog = {
 export type EtherscanHistory = {
   status: string;
   message: string;
-  result: Result[];
+  result: EtherscanResult[];
 };
 
-export type Result = {
+export type EtherscanResult = {
   blockNumber: string;
   timeStamp: string;
   hash: string;
@@ -37,7 +37,7 @@ export type Result = {
   functionName: string;
 };
 
-export type AnalysisTransaction = {
+export type AnalysisTrade = {
   hash: string;
   address: string;
   symbol: string;
@@ -46,4 +46,13 @@ export type AnalysisTransaction = {
   total: number;
   timestamp: Date;
   action: string;
+};
+
+export type AnalysisHistory = {
+  hash: string;
+  blockNumber: string;
+  from: string;
+  to: string;
+  value: string;
+  timestamp: Date;
 };

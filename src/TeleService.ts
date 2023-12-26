@@ -175,18 +175,19 @@ export class TeleService {
   }
 
   async analysisWallet(address: string) {
-    const whale = await this.whaleService.findByAdress(address);
+    const whale = await this.whaleService.find(address);
     const currentNumber = (whale?.currentBlock[chainId] as number) ?? 0;
 
     const txs = await this.market.analysisHisory(address, currentNumber);
     if (!txs) return { text: "Nothing in wallet history for analysing" };
 
-    const { transactions, blockNumber } = txs;
-    console.log(transactions);
+    const { trade, blockNumber, history } = txs;
+    Bun.write("./transactions.json", JSON.stringify(trade, null, 2));
 
-    await this.whaleService.create({
+    await this.whaleService.updateHistory({
       address,
-      history: transactions,
+      history,
+      trade,
       currentBlock: {
         ...whale?.currentBlock,
         [chainId]: blockNumber,

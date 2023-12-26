@@ -80,9 +80,12 @@ export const hashOfTransferTx =
   "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
 
 export const DEX = {
-  "0x3fc91a3afd70395cd496c647d5a6cc9d4b2b7fad": "Uniswap V3 router",
+  "0x3fc91a3afd70395cd496c647d5a6cc9d4b2b7fad": "Uniswap: universal router",
+  "0xef1c6e67703c7bd7107eed8303fbe6ec2554bf6b": "Uniswap: universal router",
+  "0x68b3465833fb72a70ecdf485e0e4c7bd8665fc45": "Uniswap: V3 router 2",
   "0x881d40237659c251811cec9c364ef91dc08d300c": "Metamask swap",
   "0xdef171fe48cf0115b1d80b88dc8eab59176fee57": "Mega swap",
+  "0xe66b31678d6c16e9ebf358268a790b763c133750": "proxiedSwap",
 };
 
-export const DexMap = new Map(Object.entries(DEX));
+export const dexMap = new Map(Object.entries(DEX));

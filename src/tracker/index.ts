@@ -43,7 +43,11 @@ export class Tracker {
 
       switch (type) {
         case "add":
-          this.whale[wallet].subscribe[channelId] = channelId;
+          const whale = this.whale[wallet];
+          if (!whale?.subscribe) {
+            whale.subscribe = {};
+          }
+          whale.subscribe[channelId] = channelId;
           this.wallets.add(wallet);
           break;
 
