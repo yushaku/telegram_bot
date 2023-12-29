@@ -41,6 +41,8 @@ import { Erc20Token } from "./lib/Erc20token";
 import { CoinMarket } from "./market";
 import { CHANGE_SWAP_INPUT_TOKEN, CLOSE_BUTTON } from "./utils/replyButton";
 import { AnalysisHistory, AnalysisTrade } from "./tracker/types";
+import { SWAP_ROUTER_ADDRESS } from "./utils/constants";
+import { formatEther } from "ethers/lib/utils";
 
 export class TeleService {
   private provider = SingletonProvider.getInstance();
@@ -63,17 +65,12 @@ export class TeleService {
       [type]: num,
     });
 
-    return `Set ${type} to ${num} ${
-      type === "slippage" ? "%" : "gwei"
-    } successfully`;
+    return `Set ${type} to ${num} ${type === "slippage" ? "%" : "gwei"} successfully`;
   }
 
   async commandWallet(userId: number) {
     const user = await this.userService.findById(userId);
-    const [accounts, block] = await Promise.all([
-      getBalance(user.accounts),
-      getBlock(),
-    ]);
+    const [accounts, block] = await Promise.all([getBalance(user.accounts), getBlock()]);
 
     return walletMsg({
       block: block?.block?.number ?? 0,
@@ -103,9 +100,7 @@ export class TeleService {
       ];
     });
 
-    inline_keyboard.push([
-      { text: "➕ Add Wallet", callback_data: WHALE_WALLET_ADD },
-    ]);
+    inline_keyboard.push([{ text: "➕ Add Wallet", callback_data: WHALE_WALLET_ADD }]);
 
     return {
       text: "📺 Your whale wallet list:",
@@ -140,13 +135,9 @@ export class TeleService {
     const list: { text: string; callback_data: string }[][] = [];
 
     data?.tokens?.forEach((token) => {
-      const amount =
-        token.balance / 10 ** Number(token.tokenInfo.decimals ?? 18);
+      const amount = token.balance / 10 ** Number(token.tokenInfo.decimals ?? 18);
       if (amount < 0.0001) return;
-      const price =
-        typeof token.tokenInfo.price === "boolean"
-          ? 0
-          : token.tokenInfo.price.rate;
+      const price = typeof token.tokenInfo.price === "boolean" ? 0 : token.tokenInfo.price.rate;
       const total = price * Number(amount);
       const symbol = token.tokenInfo.symbol;
 
@@ -179,8 +170,7 @@ export class TeleService {
   async analysisWallet(address: string) {
     const whale = await this.whaleService.find(address);
     const currentNumber = (whale?.currentBlock[chainId] as number) ?? 0;
-    const currentHistory =
-      (whale?.history as unknown as AnalysisHistory[]) ?? [];
+    const currentHistory = (whale?.history as unknown as AnalysisHistory[]) ?? [];
     const currentTrade = (whale?.trade as unknown as AnalysisTrade[]) ?? [];
 
     const txs = await this.market.analysisHisory(address, currentNumber);
@@ -399,12 +389,16 @@ export class TeleService {
         },
       };
 
-    const tokenFrom = new Erc20Token(
-      user.tokenIn.address ?? WETH9[chainId].address,
-    );
+    const tokenFrom = new Erc20Token(user.tokenIn.address ?? WETH9[chainId].address);
     const tokenTo = new Erc20Token(address);
     const { name, symbol, balance } = await tokenTo.getInfo(acc.address);
     const fromSymbol = await tokenFrom.symbol();
+
+    const buyText =
+      symbol === "WETH" ? "Deposit ETH to WETH" : `💸 Buy: Swap from ${fromSymbol} to ${symbol}`;
+
+    const sellText =
+      symbol === "WETH" ? "Withdraw WETH to ETH" : `💰 Sell: Swap from ${symbol} to ${fromSymbol}`;
 
     const buttons = {
       reply_markup: {
@@ -417,11 +411,11 @@ export class TeleService {
           ],
           [
             {
-              text: "💸 Buy amount",
+              text: buyText,
               callback_data: `buy_custom ${address}`,
             },
             {
-              text: "💰 Sell amount",
+              text: sellText,
               callback_data: `sell_custom ${address}`,
             },
           ],
@@ -498,41 +492,54 @@ export class TeleService {
   }) {
     const acc = await this.userService.getAccount(userId);
     if (!acc) return { text: "Account not found", buttons: {} };
+    const wallet = acc.address;
 
     if (isWETH(tokenAddress)) {
-      const weth = new WrapToken(tokenAddress);
-      let gas: string | undefined;
-      type === "BUY"
-        ? (gas = await weth.estimateGas("deposit", amount))
-        : (gas = await weth.estimateGas("withdraw", amount));
-
-      const { balance } = await getBalance(acc);
-      const id = uuidv4();
-      this.cache.setOrder(id, { amount, tokenAddress, type });
-
-      const buttonConfirm =
-        balance >= amount
-          ? { text: "👌 Confirm", callback_data: `confirm_swap ${id}` }
-          : { text: "💔 Don't enough token", callback_data: CLOSE };
-
-      return {
-        text: esstimateMsg({ gas, amount, balance, type }),
-        buttons: {
-          reply_markup: {
-            inline_keyboard: [
-              [{ text: "⭕ No", callback_data: CLOSE }, buttonConfirm],
-            ],
-          },
-        },
-      };
+      return this.estimateWETH({ wallet, tokenAddress, amount, type });
     } else {
-      return this.estimateTrading({
-        type,
-        userId,
-        amount,
-        tokenAddress,
-      });
+      return this.estimateTrading({ tokenAddress, userId, amount, type });
     }
+  }
+
+  async estimateWETH({
+    wallet,
+    amount,
+    tokenAddress,
+    type,
+  }: {
+    wallet: string;
+    amount: number;
+    tokenAddress: string;
+    type: "BUY" | "SELL";
+  }) {
+    const weth = new WrapToken(tokenAddress);
+    let gas: string | undefined;
+    type === "BUY"
+      ? (gas = await weth.estimateGas("deposit", amount))
+      : (gas = await weth.estimateGas("withdraw", amount));
+
+    const id = uuidv4();
+    this.cache.setOrder(id, { amount, tokenAddress, type });
+    const balance = await this.provider.getBalance(wallet);
+
+    const buttonConfirm =
+      Number(formatEther(balance)) >= amount
+        ? { text: "👌 Confirm", callback_data: `confirm_swap ${id}` }
+        : { text: "💔 Don't enough token", callback_data: CLOSE };
+
+    return {
+      text: esstimateMsg({
+        gas,
+        amount,
+        balance: formatEther(balance),
+        type,
+      }),
+      buttons: {
+        reply_markup: {
+          inline_keyboard: [[{ text: "⭕ No", callback_data: CLOSE }, buttonConfirm]],
+        },
+      },
+    };
   }
 
   async estimateRoute({
@@ -544,7 +551,8 @@ export class TeleService {
     amount: number;
     tokenAddress: string;
   }) {
-    const tokenA = WETH9[chainId];
+    const defaultTk = await this.getDefaultToken(userId);
+    const tokenA = new Token(chainId, defaultTk.address, defaultTk.decimals);
     const tokenB = new Token(chainId, tokenAddress, 18);
 
     const account = await this.userService.getAccount(userId);
@@ -592,9 +600,7 @@ export class TeleService {
       }),
       buttons: {
         reply_markup: {
-          inline_keyboard: [
-            [{ text: "⭕ No", callback_data: CLOSE }, buttonConfirm],
-          ],
+          inline_keyboard: [[{ text: "⭕ No", callback_data: CLOSE }, buttonConfirm]],
         },
       },
     };
@@ -642,7 +648,6 @@ export class TeleService {
           tokenA,
           tokenB,
           amount,
-          account,
         }),
       ]);
 
@@ -650,11 +655,7 @@ export class TeleService {
       if (!trade || !swap) {
         return {
           text: "Token do not support",
-          buttons: {
-            reply_markup: {
-              inline_keyboard: [[{ text: "⭕ No", callback_data: CLOSE }]],
-            },
-          },
+          buttons: CLOSE_BUTTON,
         };
       }
 
@@ -671,8 +672,7 @@ export class TeleService {
           ? { text: "👌 Confirm", callback_data: `confirm_swap ${id}` }
           : { text: "💔 Don't enough token", callback_data: CLOSE };
 
-      const { numerator, denominator } = swap.outputAmount;
-      const amountOut = jsbiToNumber(numerator, denominator);
+      const amountOut = Number(swap.outputAmount.toExact());
 
       return {
         text: esstimateSwap({
@@ -682,18 +682,16 @@ export class TeleService {
           amountB: pair.tokenA.balance,
           amountIn: amount,
           amountOut,
-          ratio: amount / amountOut,
+          ratio: (amount / amountOut).toFixed(10),
         }),
         buttons: {
           reply_markup: {
-            inline_keyboard: [
-              [{ text: "⭕ No", callback_data: CLOSE }, buttonConfirm],
-            ],
+            inline_keyboard: [[{ text: "⭕ No", callback_data: CLOSE }, buttonConfirm]],
           },
         },
       };
     } catch (error: any) {
-      return { text: error ?? "Get error when swap" };
+      return { text: error?.message ?? "Get error when swap" };
     }
   }
 
@@ -728,33 +726,29 @@ export class TeleService {
 
       if (isEstimateTrade(data)) {
         const { amount } = data;
-        const tokenA = new Token(
-          chainId,
-          data.tokenA.address,
-          data.tokenA.decimals,
-        );
-        const tokenB = new Token(
-          chainId,
-          data.tokenB.address,
-          data.tokenB.decimals,
-        );
+        const tokenIn = new Erc20Token(data.tokenA.address);
+        await tokenIn.checkTokenApproval({
+          amount: amount + 100_000_000,
+          account,
+          spender: SWAP_ROUTER_ADDRESS,
+        });
+
+        const tokenA = new Token(chainId, data.tokenA.address, data.tokenA.decimals);
+        const tokenB = new Token(chainId, data.tokenB.address, data.tokenB.decimals);
 
         const trade = await this.uniswap.generateTrade({
           tokenA,
           tokenB,
           amount,
-          account,
         });
 
         const receive = await this.uniswap.executeTrade({ account, trade });
-        const { infoB, infoA } = await this.endSwap({
-          from: tokenA.address,
-          to: tokenB.address,
-          account: account.address,
+        const { tokenA: infoA, tokenB: infoB } = await this.uniswap.checkBalance({
+          walletAddress: account.address,
+          tokens: { tokenA, tokenB },
         });
 
-        const { numerator, denominator } = trade?.swaps[0].outputAmount;
-        const amountB = jsbiToNumber(numerator, denominator);
+        const amountB = trade?.swaps[0].outputAmount.toExact();
 
         return {
           text: report2Msg({
@@ -764,7 +758,7 @@ export class TeleService {
             infoA,
             infoB,
             amountA: amount,
-            amountB: amountB / 10 ** infoB.decimals,
+            amountB: amountB,
           }),
         };
       }
@@ -774,25 +768,6 @@ export class TeleService {
       console.log(error);
       return { text: "Transaction is failed" };
     }
-  }
-
-  async endSwap({
-    from,
-    to,
-    account,
-  }: {
-    from: string;
-    to: string;
-    account: string;
-  }) {
-    const tokenA = new Erc20Token(from);
-    const tokenB = new Erc20Token(to);
-
-    const [infoA, infoB] = await Promise.all([
-      tokenA.getInfo(account),
-      tokenB.getInfo(account),
-    ]);
-    return { infoA, infoB };
   }
 
   async getDetails({ wallet, userId }: { wallet: string; userId: number }) {

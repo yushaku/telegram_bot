@@ -150,7 +150,7 @@ export const esstimateSwap = ({
   amountB: number;
   dollars?: number | string;
   amountOut: number;
-  ratio: number;
+  ratio: number | string;
 }) => `
 Estimate ${tokenA}       ➡️      ${tokenB}
 You pay \`${amountIn}\` ${tokenA} in your balance: \`${amountA}\`
@@ -162,8 +162,8 @@ You receive \`${amountOut}\` ${tokenB}
 ---
 
 📉 Max slipage: \`0.5%\` _auto_
-💸 Fee: $\`0\`
-⛽ Network cose: \`${gwei}\` GWEI = $${dollars}
+💸 Fee: \`$0\`
+⛽ Network cost: \`${gwei}\` GWEI = $\`${dollars}\`
 
 ---
 ⏲️ This transaction will expire after 1 minute
@@ -232,7 +232,7 @@ Received: \`${amountB}\` ${infoB?.symbol}
 
 📈 New account balance:
 ${infoA?.symbol} balance: \`${infoA?.balance}\` 
-${infoB?.symbol} balance: \`${infoB?.balance}\` 
+${infoB?.symbol} balance: \`${infoB?.balance / 10 ** infoB?.decimals}\` 
 
 ----------------------------------------------------------
 
@@ -241,19 +241,14 @@ Gas Cost: \`${formatUnits(gas ?? 0, "gwei")}\` gwei
 View in [etherscan](${urlScan}/tx/${hash})
 `;
 
-export const scanWalletmsg = (data: {
-  address: string;
-  balance: string | number;
-}) => `
+export const scanWalletmsg = (data: { address: string; balance: string | number }) => `
 Scan wallet: \`${data.address}\`
 Balance: \`${data.balance}\` ETH
 Get account detail: [Debank](https://debank.com/profile/${data.address}?chain=eth) - OR - [Etherscan](${urlScan}/address/${data.address})
 `;
 
 export const whaleActionMsg = ({ from, to, value, hash }: any) => `
-Whale action: 😎\`${shortenAddress(
-  from,
-)}\` to \`${to}\ with value \`${toReadableAmount(value)}\ 🚨
+Whale action: 😎\`${shortenAddress(from)}\` to \`${to}\ with value \`${toReadableAmount(value)}\ 🚨
 Check: [Etherscan](${urlScan}/tx/${hash})
 `;
 

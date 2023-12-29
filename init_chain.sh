@@ -9,16 +9,22 @@ while read line; do
 	value=$(echo $line | cut -d= -f2 | sed 's/"//g')
 	chain='mainnet'
 
-	if [ "$name" = "NODE_ENV" ]; then
-		if [ $value = "LOCAL" ]; then
-			chain='mainnet'
-		elif [ $value = "GOERLI" ]; then
-			chain='goerli'
-		elif [ $value = "SEPOLIA" ]; then
-			chain='sepolia'
-		fi
-	fi
-
+	# if [ "$name" = "NODE_ENV" ]; then
+	# 	if [ $value = "LOCAL" ]; then
+	# 		chain='mainnet'
+	# 		echo $chain
+	# 	elif [ $value = "GOERLI" ]; then
+	# 		chain='goerli'
+	# 		echo $chain
+	# 	elif [ $value = "MAINNET" ]; then
+	# 		chain='mainnet'
+	# 		echo $chain
+	# 	elif [ $value = "SEPOLIA" ]; then
+	# 		chain='sepolia'
+	# 		echo $chain
+	# 	fi
+	# fi
+	#
 	if [ "$name" = "INFURA_KEY" ]; then
 		pnpm ganache-cli --fork https://$chain.infura.io/v3/$value \
 			--account="0x82387ef67b43b3381bcb066c1a810fd2617f8d5498aeeab1ceea08ca6dca1d55,100000000000000000000000000" \

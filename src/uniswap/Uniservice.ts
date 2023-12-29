@@ -287,30 +287,13 @@ export class UniswapService {
     tokenA,
     tokenB,
     amount,
-    account,
     fee = FeeAmount.MEDIUM,
   }: {
     tokenA: Token;
     tokenB: Token;
     fee?: FeeAmount;
     amount: number;
-    account: Account;
   }) {
-    const tokenIn = new Erc20Token(tokenA.address);
-    const [currencyAmount, res] = await Promise.all([
-      tokenIn.balanceOf(account.address),
-      tokenIn.checkTokenApproval({
-        amount,
-        account,
-        spender: SWAP_ROUTER_ADDRESS,
-      }),
-    ]);
-
-    if (res === TransactionState.Failed || currencyAmount < amount) {
-      console.error(`currency amount: ${currencyAmount} less than ${amount}`);
-      throw new Error("Insufficient token balance 🆘");
-    }
-
     const poolInfo = await this.getPoolV3(tokenA, tokenB);
     const pool = new Pool(
       tokenA,
@@ -322,7 +305,6 @@ export class UniswapService {
     );
 
     const swapRoute = new Route([pool], tokenA, tokenB);
-
     const amountOut = await this.getOutputQuote({
       route: swapRoute,
       tokenA,
