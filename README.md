@@ -21,9 +21,15 @@ end
 ## Video demo
 
 ### start and mamager wallet
+- first you need create or import an wallet.
+  
+https://github.com/yushaku/telegram_bot/assets/72312124/8ccdf2ae-d605-4c42-b2cb-ef2174b68498
 
-![video start](./public/start.mp4)
+### Token Exchange
+- swap token with uniswap pool
+https://github.com/yushaku/telegram_bot/assets/72312124/6f87071d-d073-4548-a6a3-d27e5ed3cb35
 
-<video width="320" height="240" controls>
-  <source src="./public/start.mp4" type="video/mp4">
-</video>
+### Tracking wallet
+
+https://github.com/yushaku/telegram_bot/assets/72312124/27f6909d-e3ce-468c-982c-3bdc89b4b47e
+
