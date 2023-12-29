@@ -1,5 +1,6 @@
-import { SingletonProvider } from "@/utils/networks";
-import { BigNumber, Contract, ContractInterface, utils } from "ethers";
+import { SingletonProvider } from '@/utils/networks';
+import { BigNumber, Contract, ContractInterface } from 'ethers';
+import { formatEther, parseUnits } from 'ethers/lib/utils';
 
 export class BaseContract {
   protected provider = SingletonProvider.getInstance();
@@ -13,15 +14,15 @@ export class BaseContract {
     try {
       return bigNumber.toNumber();
     } catch (er) {
-      return Number.parseFloat(utils.formatEther(bigNumber));
+      return Number.parseFloat(formatEther(bigNumber));
     }
   }
 
   toEther(bigNumber: BigNumber) {
-    return Number.parseFloat(utils.formatEther(bigNumber));
+    return Number.parseFloat(formatEther(bigNumber));
   }
 
   toWei(amount: number) {
-    return utils.parseUnits(amount.toString());
+    return parseUnits(amount.toString());
   }
 }

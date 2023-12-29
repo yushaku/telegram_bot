@@ -23,7 +23,7 @@ export class Erc20Token extends BaseContract {
       this.symbol(),
     ]);
 
-    return { balance, decimals, name, symbol };
+    return { balance, decimals, name, symbol, address };
   }
 
   async name() {

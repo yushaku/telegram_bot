@@ -16,7 +16,7 @@ export class userService {
       name: `${first_name} ${last_name}`,
       tokenIn: {
         address: WETH9[chainId].address,
-        decimals: WETH9[chainId].decimals,
+        decimals: WETH9[chainId].decimals ?? 18,
       },
       accounts: [],
       watchList: [],
