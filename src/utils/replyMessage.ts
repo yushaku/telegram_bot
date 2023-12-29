@@ -163,7 +163,6 @@ You receive \`${amountOut}\` ${tokenB}
 
 📉 Max slipage: \`0.5%\` _auto_
 💸 Fee: \`$0\`
-⛽ Network cost: \`${gwei}\` GWEI = $\`${dollars}\`
 
 ---
 ⏲️ This transaction will expire after 1 minute

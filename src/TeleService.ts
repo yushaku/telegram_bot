@@ -344,18 +344,14 @@ export class TeleService {
   async changeSwapInputToken(userId: number, address: string) {
     const user = await this.userService.findById(userId);
     const token = new Erc20Token(address);
-    const name = token.name();
-    if (!name)
+    const decimals = await token.getDecimals();
+    if (!decimals)
       return {
         text: "⭕ Token not found",
         buttons: CLOSE_BUTTON,
       };
 
-    user.tokenIn = {
-      address,
-      decimals: token.decimals,
-    };
-
+    user.tokenIn = { address, decimals };
     this.userService.update({ userId, ...user });
 
     return {
@@ -382,11 +378,7 @@ export class TeleService {
     if (!acc)
       return {
         text: "Wallet not found",
-        buttons: {
-          reply_markup: {
-            inline_keyboard: [[{ text: "✖️  Close", callback_data: CLOSE }]],
-          },
-        },
+        buttons: CLOSE_BUTTON,
       };
 
     const tokenFrom = new Erc20Token(user.tokenIn.address ?? WETH9[chainId].address);
@@ -435,7 +427,7 @@ export class TeleService {
 
     return {
       buttons,
-      text: tokenDetail({ name, symbol, address, balance }),
+      text: tokenDetail({ name, symbol, address, balance: balance / 10 ** tokenTo.decimals }),
     };
   }
 
