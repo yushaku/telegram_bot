@@ -1,6 +1,5 @@
 import { UniSwap } from "@/uniswap";
 import { SWAP_ROUTER_ADDRESS } from "@/utils/constants";
-import { getProvider } from "@/utils/networks";
 import { NODE_ENV, chainId } from "@/utils/token";
 import { isTransactionReceipt } from "@/utils/types";
 import { toReadableAmount } from "@/utils/utils";
@@ -26,8 +25,7 @@ const tokens = {
 describe("Uni swap from token A to B", () => {
   console.info(`🚀 Run on Chain: ${NODE_ENV} with chain id: ${chainId}`);
 
-  const provider = getProvider();
-  const uniTrade = new UniSwap(provider);
+  const uniTrade = new UniSwap();
   let route: SwapRoute | null;
   const amount = 10;
 

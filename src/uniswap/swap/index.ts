@@ -1,6 +1,6 @@
-import { SingletonProvider, getProvider } from "@/utils/networks";
+import { SingletonProvider } from "@/utils/networks";
 import { chainId } from "@/utils/token";
-import { JsonRpcProvider, TransactionRequest } from "@ethersproject/providers";
+import { TransactionRequest } from "@ethersproject/providers";
 import {
   Currency,
   CurrencyAmount,
