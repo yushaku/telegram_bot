@@ -7,6 +7,7 @@ export const FEATURES_WALLET = "wallet feature";
 export const IMPORT_WALLET = "import_wallet";
 export const CREATE_WALLET = "create_wallet";
 export const LIST_WALLET = "list_wallet";
+export const LIST_TRACK_WALLET = "LIST_TRACK_WALLET";
 
 export const LIST_TOKEN = "list_token";
 export const BUY_LIMIT = "buy_limit";

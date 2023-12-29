@@ -177,7 +177,7 @@ export const esstimateMsg = ({
 }: {
   gas?: string;
   amount: number;
-  balance: number;
+  balance: number | string;
   type: "BUY" | "SELL";
 }) => {
   const action = type === "BUY" ? "Deposit" : "Withdraw";

@@ -19,11 +19,11 @@ export const RPC_URLS = {
 };
 
 export const RPC_WS = {
-  [ChainId.MAINNET]: `ws://mainnet.infura.io/ws/v3/${INFURA_KEY}`,
-  [ChainId.GOERLI]: `ws://goerli.infura.io/ws/v3/${INFURA_KEY}`,
-  [ChainId.SEPOLIA]: `ws://sepolia.infura.io/ws/v3/${INFURA_KEY}`,
-  [ChainId.POLYGON]: `ws://polygon-mainnet.infura.io/ws/v3/${INFURA_KEY}`,
-  [ChainId.POLYGON_MUMBAI]: `ws://polygon-mumbai.infura.io/ws/v3/${INFURA_KEY}`,
+  [ChainId.MAINNET]: `wss://mainnet.infura.io/ws/v3/${INFURA_KEY}`,
+  [ChainId.GOERLI]: `wss://goerli.infura.io/ws/v3/${INFURA_KEY}`,
+  [ChainId.SEPOLIA]: `wss://sepolia.infura.io/ws/v3/${INFURA_KEY}`,
+  [ChainId.POLYGON]: `wss://polygon-mainnet.infura.io/ws/v3/${INFURA_KEY}`,
+  [ChainId.POLYGON_MUMBAI]: `wss://polygon-mumbai.infura.io/ws/v3/${INFURA_KEY}`,
 };
 
 export const getUrlScan = () => {
